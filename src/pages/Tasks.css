@@ -1,0 +1,411 @@
+.tasks-container {
+  padding: 1rem;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 1.2rem;
+  padding: 0 0.5rem;
+  color: #333;
+}
+
+.task-count {
+  color: #007bff;
+  font-size: 1rem;
+}
+
+/* --- Updated Product Grid for Desktop Responsiveness --- */
+.product-grid,
+.product-grid-desktop {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 18px;
+  max-width: 680px;
+  margin: 0 auto 0 auto;
+  padding: 16px 0 24px 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .product-grid,
+  .product-grid-desktop {
+    max-width: 98vw;
+    gap: 12px;
+    padding: 10px 0 18px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .product-grid,
+  .product-grid-desktop {
+    max-width: 100vw;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 7px 0 13px 0;
+  }
+}
+
+/* --- End Updated Product Grid --- */
+
+.product-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.product-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.start-button {
+  width: 100px;
+  height: 100px;
+  border-radius: 80%;
+  background: #00aaff;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 0 10px rgba(0,170,255,0.5);
+  animation: pulse 2s infinite;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.start-button:hover {
+  background: #008ecc;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* 🔽 NEW STYLES BELOW 🔽 */
+
+.task-details {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.task-details p {
+  margin: 0.5rem 0;
+}
+
+.task-message {
+  margin-top: 0.8rem;
+  font-weight: bold;
+  color: #009900;
+}
+
+.submit-button {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+}
+
+.submit-button:hover {
+  background-color: #218838;
+}
+
+/* 🔽 BACKGROUND COLOR AND TOP OVERLAY STYLES 🔽 */
+
+.tasks-bg-top {
+  position: absolute;
+  top: 0; left: 0; width: 100vw; height: 170px;
+  overflow: hidden;
+  background: #181c23;
+}
+
+/* Remove or comment out the image style since you want a solid color not an image */
+/* .tasks-bg-top img {
+  width: 100vw;
+  height: 170px;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.7);
+} */
+
+.tasks-user-section {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  color: #fff;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0;
+}
+
+.tasks-user-section .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+}
+
+/* Overlay text shadow for user/vip over image */
+.tasks-user-section .user-info,
+.tasks-user-section .vip-level {
+  text-shadow: 0 2px 8px rgba(30,30,40,0.25);
+}
+
+.tasks-header,
+.tasks-user-section,
+.tasks-bg-top {
+  box-sizing: border-box;
+}
+
+/* Responsive: on small screens, ensure overlays stack well */
+@media (max-width: 450px) {
+  .tasks-bg-top {
+    height: 130px;
+    min-height: 100px;
+  }
+  .tasks-user-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-top: 1.1rem;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Modal-specific adjustments (only modal/product area):
+   - Ensure product name starts with a capital letter (first character)
+   - Make modal font sizes match platform (reduce overly-large modal sizes)
+   - Increase product section / image size and ensure it fits clearly on mobile
+   - Arrange name, price and rating stars vertically to the right of image
+   - Align product name to the top of the image, price centered, stars aligned to image bottom
+   - Ensure the product name truncates with ellipsis and never overflows modal
+   - Reduce spacing between stars and bring info closer to image
+   - Price: responsive sizing so the full GBP + amount is visible (no forced truncation)
+   ---------------------------------------------------------------------- */
+
+/* Scope to the modal overlay rendered in Tasks.jsx */
+.fixed.inset-0.z-50 .max-w-lg,
+.fixed.inset-0.z-50 .max-w-lg * {
+  font-family: inherit;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+/* Modal title */
+.fixed.inset-0.z-50 .max-w-lg .flex.justify-between.items-center > div:first-child {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: #232323 !important;
+}
+
+/* Product row: increase padding and bring items closer */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 {
+  padding: 12px 22px 14px 22px !important;
+  gap: 10px; /* reduced gap so info sits closer to image */
+  align-items: flex-start; /* align to top so name matches image top */
+}
+
+/* Make product image responsive and clearly fit the red-marked box across devices.
+   Use clamp so image scales with viewport but stays within reasonable limits.
+   Keep it square via aspect-ratio. Add slight padding so image doesn't touch edges. */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 img {
+  width: clamp(88px, 22vw, 140px) !important;
+  aspect-ratio: 1 / 1;
+  height: auto !important;
+  border-radius: 12px !important;
+  object-fit: contain !important;
+  margin-right: 8px !important; /* bring info closer to image */
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important;
+  background: #fff;
+  padding: 6px;
+}
+
+/* Product info column: stack vertically; set min-height to match image size so spacing is consistent.
+   Use space-between so name sits at top, stars at bottom, price in between (visually centered). */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* top, middle, bottom */
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  min-height: clamp(88px, 22vw, 140px); /* match image sizing */
+  box-sizing: border-box;
+  padding-top: 2px; /* slight offset so name aligns visually with image top */
+}
+
+/* Product name: increase font-size a bit and ensure single-line truncation with ellipsis
+   The name will never overflow the modal and will show "..." when it is too long. */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:first-child {
+  font-size: 20px !important;  /* slightly larger as requested */
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  text-transform: none;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden; /* completely hide overflowing letters and show "..." */
+  margin: 0; /* flush to top */
+}
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:first-child::first-letter {
+  text-transform: uppercase;
+}
+
+/* Price: make it responsive so GBP + amount are displayed fully on most viewports.
+   Use flexible font sizing with clamp so the text scales down on small screens instead of wrapping.
+   Keep GBP and amount on the same line and allow the price block to shrink (min-width:0) so it fits. */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(2),
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(2) span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                                 /* small gap between GBP label and numeric amount */
+  font-size: clamp(14px, 2.1vw, 19px) !important; /* responsive sizing; shrinks on small screens */
+  font-weight: 800 !important;              /* bold */
+  color: #6a6b72 !important;                /* grey */
+  font-variant-numeric: tabular-nums;
+  margin: auto 0;                           /* vertical centering: middle of column (image) */
+  width: auto;
+  max-width: 100%;
+  white-space: nowrap;                      /* keep GBP + amount on same line */
+  overflow: visible;                        /* allow content to be visible; sizing handled by clamp */
+  text-overflow: clip;                      /* do not force ellipsis here */
+  line-height: 1;
+  padding: 0;
+  min-width: 0;                             /* allow flex child to shrink properly */
+  flex-shrink: 1;                           /* allow shrinking to fit modal width */
+}
+
+/* Ensure GBP label and the numeric amount are treated as inline, non-wrapping pieces.
+   This enforces that "GBP 1234.56" stays together, while font-size will scale to fit. */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(2) * {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* On very narrow screens, reduce price font a little more to guarantee visibility */
+@media (max-width: 360px) {
+  .fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(2),
+  .fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(2) span {
+    font-size: 13px !important;
+  }
+}
+
+/* Stars container (3rd child): reduce spacing between stars and align to bottom via space-between on column */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(3) {
+  display: flex;
+  align-items: center;
+  gap: 3px; /* reduced spacing between stars as requested */
+  margin: 0; /* bottom alignment handled by space-between */
+}
+
+/* Keep star SVG size near original, slightly reduced to fit closer */
+.fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(3) svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+/* Amount blocks (Total Amount / Commission) platform-sized */
+.fixed.inset-0.z-50 .max-w-lg > div[style] + div[style] .amount-label,
+.fixed.inset-0.z-50 .max-w-lg .amount-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #6a6b72;
+}
+
+.fixed.inset-0.z-50 .max-w-lg .amount-value,
+.fixed.inset-0.z-50 .max-w-lg > div[style] + div[style] .amount-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1fb6fc;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Meta lines (Created At / Task Code) */
+.fixed.inset-0.z-50 .max-w-lg [style*="fontSize: 14.5px"],
+.fixed.inset-0.z-50 .max-w-lg .task-meta,
+.fixed.inset-0.z-50 .max-w-lg .task-code {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #222 !important;
+}
+
+/* Task code monospace tweaks */
+.fixed.inset-0.z-50 .max-w-lg .task-code,
+.fixed.inset-0.z-50 .max-w-lg [style*="fontFamily: \"monospace\""] {
+  font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Submit button: platform-consistent size */
+.fixed.inset-0.z-50 .max-w-lg .mt-2.w-full.py-2,
+.fixed.inset-0.z-50 .max-w-lg .task-modal-submit,
+.fixed.inset-0.z-50 .max-w-lg button[class*="w-full"] {
+  font-size: 1rem !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+}
+
+/* Ensure numeric text uses tabular numbers for alignment */
+.fixed.inset-0.z-50 .max-w-lg span,
+.fixed.inset-0.z-50 .max-w-lg strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small screens: maintain proportions while keeping image clear and name readable */
+@media (max-width: 480px) {
+  .fixed.inset-0.z-50 .max-w-lg .flex.justify-between.items-center > div:first-child { font-size: 17px !important; }
+  .fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:first-child { font-size: 18px !important; }
+  .fixed.inset-0.z-50 .max-w-lg .amount-value { font-size: 16px !important; }
+  .fixed.inset-0.z-50 .max-w-lg .task-code { font-size: 12px !important; }
+
+  /* On very small screens reduce the max cap but still keep image noticeably larger than before */
+  .fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 img {
+    width: clamp(80px, 26vw, 120px) !important;
+    aspect-ratio: 1 / 1;
+    padding: 6px;
+  }
+
+  /* Keep stars visible and slightly smaller on tiny screens */
+  .fixed.inset-0.z-50 .max-w-lg .flex.flex-row.items-center.px-6 > div > div:nth-child(3) svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* End modal-specific adjustments */

@@ -1,0 +1,202 @@
+.records-container {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.tab.active {
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+  background-color: #f0f8ff;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.record-card {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 0.8rem;
+  position: relative;
+}
+
+.record-time {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.record-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.record-img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.record-info {
+  flex: 1;
+}
+
+.record-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.record-price {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.stars {
+  color: gold;
+  font-size: 1rem;
+}
+
+.record-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.badge {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.badge.pending {
+  background-color: #ff6b6b;
+}
+
+.badge.completed {
+  background-color: #007bff;
+}
+
+.badge.frozen {
+  background-color: #888;
+}
+
+.record-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #eee;
+  align-items: center;
+}
+
+.footer-label {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.footer-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.submit-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+
+.insufficient-toast {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+.insufficient-content-grey {
+  background: #f7fafc;
+  color: #333;
+  border: 2px solid #a0aec0;
+  padding: 1.2rem 2.2rem;
+  border-radius: 1.7rem;
+  font-weight: 600;
+  font-size: 1.13rem;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.08);
+  text-align: center;
+  min-width: 230px;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: scale(0.95);}
+  10% { opacity: 1; transform: scale(1.05);}
+  90% { opacity: 1; transform: scale(1);}
+  100% { opacity: 0; transform: scale(0.97);}
+}
+.animate-fade-in-out {
+  animation: fadeInOut 3s both;
+}
+.dot-spin {
+  display: inline-block;
+  margin-left: 2px;
+  letter-spacing: 1px;
+}
+.dot-spin:after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid #a0aec0;
+  border-top-color: #718096;
+  animation: spin 0.9s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

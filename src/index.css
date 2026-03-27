@@ -1,0 +1,21 @@
+/* index.css - Global styles & Tailwind setup */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global font and background color */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f9fafb;
+}
+
+/* Reusable primary button style */
+.btn-primary {
+  @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition;
+}
+
+/* Reusable secondary button style (for cancel, logout, etc.) */
+.btn-secondary {
+  @apply bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 transition;
+}
