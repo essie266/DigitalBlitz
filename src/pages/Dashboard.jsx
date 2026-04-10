@@ -10,7 +10,7 @@ import bannerVideo from "../assets/videos/home_bg_videos.mp4";
 
 // Menu icons
 import wfpIcon from "../assets/images/home/wfp.png";
-import serviceIcon from "../assets/images/home/service.png";
+import serviceIcon from "../assets/images/home/Service.png";
 import certificateIcon from "../assets/images/home/Certificate.png";
 import eventIcon from "../assets/images/home/Event.png";
 import withdrawIcon from "../assets/images/home/Withdraw.png";
@@ -30,7 +30,7 @@ import BottomNav from "../components/BottomNav.jsx"; // <-- added import for sha
 import homeIcon from "../assets/images/tabBar/Homes.png";
 import taskIcon from "../assets/images/tabBar/Start.png";
 import recordsIcon from "../assets/images/tabBar/Record.png";
-import profileIcon from "../assets/images/tabBar/my3.png";
+import profileIcon from "../assets/images/tabBar/My3.png";
 
 // Partner logos (ensure this import exists)
 import partnerRow from "../assets/images/home/partner_row.png";
