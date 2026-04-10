@@ -109,7 +109,7 @@ export default function CustomerServiceModal({ open, onClose }) {
       alert("Please login first to start a chat with customer service.");
       return;
     }
-    const chatUrl = `https://stacks-chat.onrender.com/?user=${encodeURIComponent(username)}`;
+    const chatUrl = `https://digitalblitz-cs.onrender.com/?user=${encodeURIComponent(username)}`;
     openLink(chatUrl);
   };
 
