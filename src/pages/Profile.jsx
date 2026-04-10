@@ -20,10 +20,10 @@ import notifIcon from "../assets/images/profile/notif.png";
 import NotificationBell from "../components/NotificationBell";
 
 // Bottom nav icons (used for the bottom bar)
-import homeIcon from "../assets/images/tabBar/homes.png";
-import startingIcon from "../assets/images/tabBar/start.png";
-import recordsIcon from "../assets/images/tabBar/record.png";
-import profileIcon from "../assets/images/tabBar/my3.png";
+import homeIcon from "../assets/images/tabBar/Homes.png";
+import startingIcon from "../assets/images/tabBar/Start.png";
+import recordsIcon from "../assets/images/tabBar/Record.png";
+import profileIcon from "../assets/images/tabBar/My3.png";
 
 // ---- API domain kept the same as before ----
 const API_URL = "https://stacksapp-backend.onrender.com";
