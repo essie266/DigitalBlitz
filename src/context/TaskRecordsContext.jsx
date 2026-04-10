@@ -4,7 +4,7 @@ const TaskRecordsContext = createContext();
 
 export const TaskRecordsProvider = ({ children }) => {
   const [records, setRecords] = useState([]);
-  const BASE_URL = "https://stacksapp-backend.onrender.com";
+  const BASE_URL = "https://digitalblitz-backend.onrender.com";
 
   // keep a ref to avoid stale closures and to track last fetched data
   const latestRecordsRef = useRef([]);
