@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/images/header/logos.png";
-import csIcon from "../assets/images/header/cs1.png";
+import csIcon from "../assets/images/header/Cs1.png";
 import CustomerServiceModal from "../components/CustomerServiceModal";
 import "./Login.css";
 import { useProfile } from "../context/profileContext"; // keep as-is
