@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const START_BLUE = "#1fb6fc";
-const API_URL = "https://stacksapp-backend.onrender.com";
+const API_URL = "https://digitalblitz-backend.onrender.com";
 
 export default function UpdateWithdrawPassword() {
   const navigate = useNavigate();
