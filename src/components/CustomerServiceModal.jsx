@@ -3,222 +3,274 @@ import React, { useEffect, useState } from "react";
 // Path to your avatar image in the public folder
 const csImage = "/assets/images/Cs.jpg";
 
+const API_BASE = "https://stacksapp-backend.onrender.com";
+const START_BLUE = "#1fb6fc";
+const DARK_BG = "#0f1112";
+const CARD_BG = "#ffffff";
+const MUTED = "#6f6f6f";
+
+/**
+ * CustomerServiceModal
+ * - Polished styling to match platform colors (dark accents + START_BLUE).
+ * - Clean layout, clear affordances and disabled states.
+ * - Fetches service links from backend when opened (cached per open).
+ *
+ * Props:
+ *  - open: boolean
+ *  - onClose: function
+ */
 export default function CustomerServiceModal({ open, onClose }) {
   const [links, setLinks] = useState({
     telegram1: "",
     telegram2: "",
     customerService: "",
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    fetch("https://https://stacksapp-backend.onrender.com/service-links.json?ts=" + Date.now())
+    let cancelled = false;
+    setLoading(true);
+
+    // fixed endpoint (removed accidental double https://)
+    fetch(`${API_BASE}/service-links.json?ts=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
+        if (cancelled) return;
         setLinks({
           telegram1: data.telegram1 || "",
           telegram2: data.telegram2 || "",
-          customerService: data.whatsapp || "",
+          customerService: data.whatsapp || data.customerService || "",
         });
       })
       .catch(() => {
+        if (cancelled) return;
         setLinks({ telegram1: "", telegram2: "", customerService: "" });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   if (!open) return null;
 
-  // Blue arrow icon
-  const arrowIcon = (
-    <svg width="20" height="20" viewBox="0 0 18 18" style={{ marginLeft: "auto" }}>
+  // Arrow chevron (platform blue)
+  const Arrow = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0 }}>
       <path
-        d="M6 4l4 5-4 5"
-        stroke="#198cff"
-        strokeWidth="2.5"
-        fill="none"
+        d="M9 6l6 6-6 6"
+        stroke={START_BLUE}
+        strokeWidth="2"
         strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   );
 
-  // Avatar used for all rows
   const avatar = (
     <img
       src={csImage}
-      alt="service"
-      data-i18n-alt="service"
+      alt="Customer service"
       style={{
-        width: 26,
-        height: 26,
+        width: 36,
+        height: 36,
         borderRadius: "50%",
         marginRight: 14,
         objectFit: "cover",
-        background: "#eee",
-        border: "1px solid #eee",
+        background: "#f6f7f8",
+        border: "1px solid #f0f1f3",
+        flexShrink: 0,
       }}
     />
   );
 
+  // Helper for row button click
+  const openLink = (url) => {
+    if (!url) return;
+    try {
+      // always open in new tab
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      // fallback
+      window.location.href = url;
+    }
+    onClose && onClose();
+  };
+
+  const handleChat = () => {
+    const username = localStorage.getItem("user") || localStorage.getItem("currentUser") || "";
+    if (!username) {
+      // keep message visible to user
+      alert("Please login first to start a chat with customer service.");
+      return;
+    }
+    const chatUrl = `https://stacks-chat.onrender.com/?user=${encodeURIComponent(username)}`;
+    openLink(chatUrl);
+  };
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Customer Service"
+      onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 1200,
-        background: "rgba(30, 32, 38, 0.30)",
+        background: "rgba(12, 14, 16, 0.55)",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        transition: "background 0.2s",
+        padding: 20,
       }}
-      onClick={onClose}
     >
-      {/* Modal box */}
       <div
-        style={{
-          background: "rgba(252, 252, 255, 0.98)",
-          borderRadius: 20,
-          boxShadow: "0 8px 32px 0 rgba(0,0,0,0.14)",
-          minWidth: 340,
-          maxWidth: "95vw",
-          minHeight: 80,
-          padding: "0",
-          textAlign: "left",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          border: "1.5px solid #f0f1f3",
-        }}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+          background: CARD_BG,
+          border: "1px solid rgba(15,15,15,0.06)",
+        }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: "8px 0" }}>
+        {/* Header */}
+        <div style={{ background: DARK_BG, padding: "12px 16px", display: "flex", alignItems: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Contact Support</div>
+          <button
+            onClick={onClose}
+            aria-label="Close customer service"
+            style={{
+              marginLeft: "auto",
+              background: "transparent",
+              border: "none",
+              color: "#ffffff88",
+              fontSize: 20,
+              cursor: "pointer",
+              padding: 6,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Content rows */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {/* Telegram 1 */}
           <button
-            onClick={() => {
-              if (links.telegram1) {
-                window.open(links.telegram1, "_blank");
-                onClose();
-              }
-            }}
+            disabled={!links.telegram1 || loading}
+            onClick={() => openLink(links.telegram1)}
             style={{
               display: "flex",
               alignItems: "center",
               width: "100%",
-              background: "none",
+              background: "transparent",
               border: "none",
-              padding: "12px 28px 12px 22px",
-              cursor: links.telegram1 ? "pointer" : "not-allowed",
-              opacity: links.telegram1 ? 1 : 0.5,
-              fontSize: 18,
-              fontWeight: 600,
-              color: "#43444a",
-              borderBottom: "1px solid #ececec",
-              outline: "none",
+              padding: "14px 18px",
+              cursor: links.telegram1 && !loading ? "pointer" : "not-allowed",
+              opacity: links.telegram1 && !loading ? 1 : 0.55,
+              borderBottom: "1px solid #f0f1f3",
               textAlign: "left",
-              transition: "background 0.15s",
             }}
-            disabled={!links.telegram1}
           >
             {avatar}
-            <span data-i18n="Telegram">Telegram</span>
-            {arrowIcon}
+            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#222" }}>Telegram</div>
+                <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>
+                  {links.telegram1 ? links.telegram1.replace(/^(https?:\/\/)?/, "").split("/")[0] : ""}
+                </div>
+              </div>
+              <div style={{ marginLeft: "auto" }}>
+                <Arrow />
+              </div>
+            </div>
           </button>
 
           {/* Telegram 2 */}
           <button
-            onClick={() => {
-              if (links.telegram2) {
-                window.open(links.telegram2, "_blank");
-                onClose();
-              }
-            }}
+            disabled={!links.telegram2 || loading}
+            onClick={() => openLink(links.telegram2)}
             style={{
               display: "flex",
               alignItems: "center",
               width: "100%",
-              background: "none",
+              background: "transparent",
               border: "none",
-              padding: "12px 28px 12px 22px",
-              cursor: links.telegram2 ? "pointer" : "not-allowed",
-              opacity: links.telegram2 ? 1 : 0.5,
-              fontSize: 18,
-              fontWeight: 600,
-              color: "#43444a",
-              borderBottom: "1px solid #ececec",
-              outline: "none",
+              padding: "14px 18px",
+              cursor: links.telegram2 && !loading ? "pointer" : "not-allowed",
+              opacity: links.telegram2 && !loading ? 1 : 0.55,
+              borderBottom: "1px solid #f0f1f3",
               textAlign: "left",
-              transition: "background 0.15s",
             }}
-            disabled={!links.telegram2}
           >
             {avatar}
-            <span data-i18n="Telegram">Telegram</span>
-            {arrowIcon}
+            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#222" }}>Telegram</div>
+                <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>
+                  {links.telegram2 ? links.telegram2.replace(/^(https?:\/\/)?/, "").split("/")[0] : ""}
+                </div>
+              </div>
+              <div style={{ marginLeft: "auto" }}>
+                <Arrow />
+              </div>
+            </div>
           </button>
 
-          {/* Customer Service */}
+          {/* In-app Chat / Customer Service */}
           <button
-            onClick={() => {
-              const username = localStorage.getItem("user");
-
-              if (!username) {
-                // kept original alert text; translator may replace visible UI strings.
-                alert("Username not found — user must be logged in.");
-                return;
-              }
-
-              const chatUrl = `https://stacks-chat.onrender.com/?user=${username}`;
-              window.open(chatUrl, "_blank");
-              onClose();
-            }}
+            onClick={handleChat}
             style={{
               display: "flex",
               alignItems: "center",
               width: "100%",
-              background: "none",
+              background: "transparent",
               border: "none",
-              padding: "12px 28px 12px 22px",
+              padding: "14px 18px",
               cursor: "pointer",
               opacity: 1,
-              fontSize: 18,
-              fontWeight: 600,
-              color: "#43444a",
-              outline: "none",
               textAlign: "left",
-              transition: "background 0.15s",
             }}
           >
             {avatar}
-            <span data-i18n="Customer Service">Customer Service</span>
-            {arrowIcon}
+            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#222" }}>Customer Service</div>
+                <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>
+                  Chat with our support team now!
+                </div>
+              </div>
+              <div style={{ marginLeft: "auto" }}>
+                <Arrow />
+              </div>
+            </div>
           </button>
         </div>
 
-        {/* Cancel link inside modal */}
-        <div
-          style={{
-            textAlign: "center",
-            padding: "10px 0 8px 0",
-            borderTop: "1px solid #ececec",
-          }}
-        >
+        {/* Footer */}
+        <div style={{ padding: 12, borderTop: "1px solid #f0f1f3", display: "flex", justifyContent: "center" }}>
           <button
             onClick={onClose}
             style={{
-              background: "none",
-              border: "none",
-              color: "#198cff",
-              fontSize: 18,
+              background: "transparent",
+              border: "1px solid rgba(15,15,15,0.06)",
+              padding: "10px 18px",
+              borderRadius: 10,
+              color: DARK_BG,
               fontWeight: 700,
               cursor: "pointer",
-              textDecoration: "underline",
-              letterSpacing: 0.2,
-              outline: "none",
-              transition: "color 0.18s",
             }}
           >
-            <span data-i18n="Cancel">Cancel</span>
+            Cancel
           </button>
         </div>
       </div>

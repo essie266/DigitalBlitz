@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 // Public pages
 import Login from "../pages/Login.jsx";
@@ -22,6 +22,7 @@ import Records from "../pages/Records.jsx";
 import PersonalInfo from "../pages/PersonalInfo.jsx";
 import BindWallet from "../pages/BindWallet.jsx";
 import Notifications from "../pages/Notifications.jsx";
+import Premium from "../pages/Premium.jsx"; // added Premium page import
 
 // Password update pages
 import UpdatePassword from "../pages/UpdatePassword.jsx";
@@ -30,8 +31,33 @@ import UpdateWithdrawPassword from "../pages/UpdateWithdrawPassword.jsx";
 // Protected route wrapper
 import ProtectedRoute from "../components/ProtectedRoute.jsx";
 
+// Bottom navigation (new)
+import BottomNav from "../components/BottomNav.jsx";
+
 export default function AppRoutes() {
   console.log("Rendering AppRoutes...");
+
+  // Component rendered inside Router so useLocation can be used here.
+  function NavVisibility() {
+    const location = useLocation();
+    const path = location?.pathname || "";
+
+    // Paths where BottomNav should be hidden
+    const hidePaths = [
+      "/login",
+      "/register",
+      "/terms",
+      "/update-password",
+      "/update-withdraw-password",
+      "/", // root redirect - keep hidden
+    ];
+
+    // Also hide on exact matches of the public routes above.
+    // If you want more complex rules (prefixes etc.) adjust here.
+    const shouldHide = hidePaths.includes(path);
+
+    return shouldHide ? null : <BottomNav />;
+  }
 
   return (
     <Router>
@@ -60,6 +86,7 @@ export default function AppRoutes() {
         <Route path="/personal-info" element={<ProtectedRoute><PersonalInfo /></ProtectedRoute>} />
         <Route path="/bind-wallet" element={<ProtectedRoute><BindWallet /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} /> {/* added Premium route */}
 
         {/* Password update routes */}
         <Route path="/update-password" element={<UpdatePassword />} />
@@ -68,6 +95,9 @@ export default function AppRoutes() {
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
+
+      {/* Render BottomNav conditionally inside Router using current location */}
+      <NavVisibility />
     </Router>
   );
 }

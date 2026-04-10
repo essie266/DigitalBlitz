@@ -1,91 +1,94 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import logo from "../assets/images/header/logo.svg";
+import logo from "../assets/images/header/Logos.png";
+import csIcon from "../assets/images/header/cs1.png";
 import CustomerServiceModal from "../components/CustomerServiceModal";
-import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./Login.css";
-import { useProfile } from "../context/profileContext"; // <--- ensure profile is refreshed after login
+import { useProfile } from "../context/profileContext"; // keep as-is
 
-// Reusable fading message overlay (grey, always centered)
+// Reusable fading message overlay (grey, centered)
 function FadeMessage({ message, onDone, duration = 1000 }) {
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (onDone) onDone();
     }, duration);
     return () => clearTimeout(timer);
   }, [onDone, duration]);
+
+  if (!message) return null;
+
   return (
     <div
       style={{
         position: "fixed",
-        top: 0, left: 0, width: "100vw", height: "100vh",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         zIndex: 10000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        pointerEvents: "none"
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
       }}
     >
       <div
         style={{
-          background: "rgba(60, 60, 60, 0.94)",
+          background: "rgba(60,60,60,0.94)",
           color: "#fff",
           borderRadius: 16,
           padding: "1.1rem 2.2rem",
           fontWeight: 600,
-          fontSize: "1.19rem",
-          boxShadow: "0 2px 16px 0 #0003",
-          opacity: 0.97,
+          fontSize: "1.05rem",
+          boxShadow: "0 2px 16px rgba(0,0,0,0.15)",
+          opacity: 0.98,
           textAlign: "center",
-          minWidth: "140px",
+          minWidth: 140,
           maxWidth: "80vw",
-          textTransform: "none",
-          letterSpacing: "0.01em",
-          animation: "fade-in-out-anim 1s linear"
         }}
       >
         {message}
       </div>
-      <style>
-        {`
-        @keyframes fade-in-out-anim {
-          0% { opacity: 0; transform: scale(0.98);}
-          10% { opacity: 1; transform: scale(1);}
-          90% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        `}
-      </style>
     </div>
   );
 }
 
-// Simple spinner overlay for loading
+// Simple spinner overlay
 function SpinnerOverlay({ duration = 500, onDone }) {
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (onDone) onDone();
     }, duration);
     return () => clearTimeout(timer);
   }, [onDone, duration]);
+
   return (
     <div
       style={{
         position: "fixed",
-        top: 0, left: 0, width: "100vw", height: "100vh",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         zIndex: 10000,
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         background: "rgba(245,247,251,0.75)",
-        pointerEvents: "none"
+        pointerEvents: "none",
       }}
     >
-      <div className="spinner" style={{
-        width: 44, height: 44, border: "4px solid #ddd", borderTop: "4px solid #216378",
-        borderRadius: "50%", animation: "spin 0.8s linear infinite"
-      }} />
-      <style>
-        {`
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        `}
-      </style>
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          border: "4px solid #ddd",
+          borderTop: "4px solid #216378",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+      <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -100,7 +103,7 @@ export default function Login({ refreshRecords }) {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
   const navigate = useNavigate();
-  const { fetchProfile } = useProfile(); // ensure we refresh canonical profile after login
+  const { fetchProfile } = useProfile();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -108,9 +111,7 @@ export default function Login({ refreshRecords }) {
     try {
       const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           input: input.trim(),
           password: password.trim(),
@@ -120,13 +121,11 @@ export default function Login({ refreshRecords }) {
       const data = await res.json();
 
       if (data.success) {
-        // Robust token extraction: top-level token or data.user.token
         const token =
           data.token ||
           (data.user && (data.user.token || data.user?.token)) ||
           null;
 
-        // persist token and basic user locally (store both keys for compatibility)
         if (token) {
           try { localStorage.setItem("authToken", token); } catch (e) {}
           try { localStorage.setItem("token", token); } catch (e) {}
@@ -137,31 +136,19 @@ export default function Login({ refreshRecords }) {
           try { localStorage.setItem("user", data.user.username || ""); } catch (e) {}
         }
 
-        // Immediately refresh canonical profile so other pages show fresh data ASAP.
-        // We await fetchProfile to increase chance the profile is present before navigation,
-        // but even if it fails we continue (non-blocking for UX).
         try {
           if (typeof fetchProfile === "function") {
             await fetchProfile();
           }
         } catch (err) {
-          console.warn("Post-login fetchProfile failed:", err);
+          console.warn("fetchProfile failed:", err);
         }
 
-        // Notify other parts of the app that login happened (cross-tab and providers may listen)
         try { window.dispatchEvent(new Event("auth:login")); } catch (e) {}
-
-        // Also signal profile updated if we have profile stored (profileContext will already dispatch),
-        // but dispatching profile:refresh is harmless and triggers other listeners to revalidate.
         try { window.dispatchEvent(new Event("profile:refresh")); } catch (e) {}
 
-        // Refresh task records if parent provided hook
         if (typeof refreshRecords === "function") {
-          try {
-            await refreshRecords();
-          } catch (err) {
-            // ignore
-          }
+          try { await refreshRecords(); } catch (err) {}
         }
 
         setFadeMsg("Login Success");
@@ -169,139 +156,217 @@ export default function Login({ refreshRecords }) {
         setFadeMsg(data.message || "Login failed!");
       }
     } catch (err) {
-      console.error("Login failed:", err);
+      console.error(err);
       setFadeMsg("Server error. Please try again later.");
     }
   };
 
   useEffect(() => {
     if (fadeMsg === "Login Success") {
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setFadeMsg("");
         setShowSpinner(true);
       }, 1000);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
     if (fadeMsg && fadeMsg !== "Login Success") {
-      const timer = setTimeout(() => setFadeMsg(""), 1000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setFadeMsg(""), 1200);
+      return () => clearTimeout(t);
     }
   }, [fadeMsg]);
 
   useEffect(() => {
     if (showSpinner) {
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setShowSpinner(false);
         navigate("/dashboard");
       }, 500);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
   }, [showSpinner, navigate]);
 
   return (
-    <div className="login-bg-hero flex items-center justify-center min-h-screen relative">
-      {fadeMsg && (
-        <FadeMessage message={fadeMsg} />
-      )}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#efebe6", // beige background
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        position: "relative",
+        fontFamily:
+          "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+        paddingTop: 16,
+        boxSizing: "border-box",
+      }}
+    >
+      {fadeMsg && <FadeMessage message={fadeMsg} />}
       {showSpinner && <SpinnerOverlay />}
-      <div className="login-bg-overlay"></div>
 
-      {/* LanguageSwitcher: fixed to the extreme top-right corner, scaled down for neat fit */}
-      <div style={{
-        position: "fixed",
-        top: 8,
-        right: 8,
-        zIndex: 10050,
-        transform: "scale(0.82)",
-        transformOrigin: "top right",
-        pointerEvents: "auto"
-      }}>
-        <LanguageSwitcher />
-      </div>
+      {/* Customer service icon (top-right) - transparent background so it blends with page */}
+      <button
+        type="button"
+        onClick={() => setShowCustomerModal(true)}
+        aria-label="Customer Service"
+        style={{
+          position: "fixed",
+          top: 6,
+          right: 16,
+          zIndex: 10060,
+          width: 48,
+          height: 48,
+          borderRadius: 999,
+          background: "transparent", // use page background, no purple
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+        }}
+      >
+        <img src={csIcon} alt="Customer Service" style={{ width: 42, height: 42, display: "block" }} />
+      </button>
 
-      <div className="login-logo-absolute">
+      {/* Main centered column */}
+      <div style={{ width: "100%", maxWidth: 760, padding: "0 38px", textAlign: "center", boxSizing: "border-box" }}>
         <img
           src={logo}
-          alt="Stacks Logo"
-          className="login-logo-img login-logo-img-white"
+          alt="Digital Blitz"
+          style={{ width: 140, height: "auto", display: "block", margin: "100px auto 12px" }}
           loading="lazy"
         />
-      </div>
-      <div className="login-content-centered z-10">
-        <h2 className="login-title" data-i18n="Login Now">Login Now</h2>
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="login-input-row">
-            <label className="login-label" data-i18n="Username/Phone">Username/Phone</label>
-            <div className="login-input-placeholder-wrap">
+
+        <h2 style={{ marginTop: 70, marginBottom: 58, fontSize: 20, fontWeight: 700, color: "#111" }}>
+          Login Now
+        </h2>
+
+        <form onSubmit={handleLogin} style={{ width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+          {/* Username row: label left, placeholder right on the same line */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: -20 }}>
+              <label style={{ color: "#333", fontWeight: 600, fontSize: 14 }}>Username/Phone</label>
+
+              {/* Right-aligned placeholder inside a small box that disappears when typing */}
+              <div
+                aria-hidden="true"
+                style={{
+                  color: "#7d7d7d",
+                  fontSize: 14,
+                  borderRadius: 4,
+                  padding: "4px 8px",
+                  boxSizing: "border-box",
+                  // position visually aligned to right of the label line
+                }}
+              >
+                {input.length === 0 ? "Username/Phone" : ""}
+              </div>
+            </div>
+            <div>
               <input
-                name="username"
                 type="text"
-                className="login-input"
-                placeholder="Username/Phone"
-                data-i18n="Username/Phone"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                placeholder=""
                 required
                 autoComplete="username"
+                style={{
+                  width: "100%",
+                  border: "none",
+                  borderBottom: "1px solid rgba(0,0,0,0.12)",
+                  padding: "10px 6px",
+                  borderRadius: 4,
+                  background: "transparent",
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                  outline: "none",
+                  marginTop: -30,
+                  textAlign: "right", // <-- ensure typed text appears on the right
+                }}
               />
-              {!input && (
-                <span className="login-placeholder right-align" data-i18n="Username/Phone">Username/Phone</span>
-              )}
             </div>
           </div>
-          <div className="login-input-row">
-            <label className="login-label" data-i18n="Password">Password</label>
-            <div className="login-input-placeholder-wrap">
+
+          {/* Password row */}
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: -30 }}>
+              <label style={{ color: "#333", fontWeight: 700, fontSize: 14 }}>Password</label>
+
+              {/* Right-aligned placeholder inside a small box that disappears when typing */}
+              <div
+                aria-hidden="true"
+                style={{
+                  color: "#7d7d7d",
+                  fontSize: 14,
+                  borderRadius: 4,
+                  padding: "4px 8px",
+                  boxSizing: "border-box",
+                }}
+              >
+                {password.length === 0 ? "Password" : ""}
+              </div>
+            </div>
+            <div>
               <input
-                name="password"
                 type="password"
-                className="login-input"
-                placeholder="Password"
-                data-i18n="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder=""
                 required
                 autoComplete="current-password"
+                style={{
+                  width: "100%",
+                  border: "none",
+                  borderBottom: "1px solid rgba(0,0,0,0.12)",
+                  padding: "10px 6px",
+                  borderRadius: 4,
+                  background: "transparent",
+                  fontSize: 16,
+                  boxSizing: "border-box",
+                  outline: "none",
+                  marginTop: 8,
+                  textAlign: "right", // <-- ensure typed password appears on the right
+                }}
               />
-              {!password && (
-                <span className="login-placeholder right-align" data-i18n="Password">Password</span>
-              )}
             </div>
           </div>
-          <button
-            type="submit"
-            className="login-btn"
-            data-i18n="Login"
-          >
-            Login
-          </button>
+
+          {/* Big rounded black Login button */}
+          <div style={{ marginBottom: 30 }}>
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                background: "#111",
+                color: "#fff",
+                borderRadius: 999,
+                padding: "14px 28px",
+                fontSize: 18,
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                display: "block",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              }}
+            >
+              Login
+            </button>
+          </div>
+
+          {/* Register link */}
+          <div style={{ textAlign: "center", marginTop: 6 }}>
+            <Link to="/register" style={{ color: "#111", fontSize: 17, textDecoration: "underline", fontWeight: 700 }}>
+              Register
+            </Link>
+          </div>
         </form>
-        <div className="login-bottom-link">
-          <Link to="/register" className="login-link" data-i18n="Register">
-            Register
-          </Link>
+
+        {/* footer */}
+        <div style={{ marginTop: 260, color: "#8f8f8f", textAlign: "center", fontSize: 15 }}>
+          2025—2026.
         </div>
       </div>
 
-      <button
-        type="button"
-        className="customer-service-btn-top"
-        title="Customer Service"
-        onClick={() => setShowCustomerModal(true)}
-        style={{
-          position: "absolute",
-          top: 35,
-          right: 23,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          zIndex: 30
-        }}
-      >
-        <svg height="27" width="27" viewBox="0 0 24 24" fill="white">
-          <path d="M12 12.713l-11.714-7.713v15h23.428v-15zm11.714-8.713h-23.428l11.714 7.713z"/>
-        </svg>
-      </button>
       <CustomerServiceModal open={showCustomerModal} onClose={() => setShowCustomerModal(false)} />
     </div>
   );

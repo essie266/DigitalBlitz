@@ -4,24 +4,20 @@ import { useNavigate } from "react-router-dom";
 const START_BLUE = "#1fb6fc";
 
 /**
- * Terms and Conditions page
+ * Terms and Conditions page (document-scrollable)
  *
- * This version calls `applyTranslations()` when the component mounts and
- * re-applies translations when the document `lang` attribute changes or when
- * a `languageChanged` event is dispatched on window.
+ * Changes made:
+ * - Kept translation logic and observers.
+ * - Header remains fixed.
+ * - Removed card maxHeight + inner overflow so the whole page/document scrolls.
+ * - The white card expands with content and the page scrolls up/down.
  *
- * The applyTranslations implementation:
- *  - Prefer using a global translator if available (window.applyTranslations)
- *  - If i18next is present globally, use it to translate each [data-i18n] node
- *  - Fallback: attempt to load `/i18n/<locale>.json` (locale from i18next, localStorage, or <html lang>)
- *
- * The page keeps the existing `data-i18n` attributes so translations work with
- * the same DOM-replacement strategy used in Tasks.jsx.
+ * Nothing else (handlers / translation logic) was removed.
  */
 export default function TermsAndConditions() {
   const navigate = useNavigate();
 
-  // Apply translations to all elements with data-i18n
+  // Apply translations to all elements with data-i18n (keeps previous behaviour)
   async function applyTranslations() {
     try {
       // 1) If the app exposes a dedicated translator function, use it
@@ -30,7 +26,6 @@ export default function TermsAndConditions() {
           window.applyTranslations();
           return;
         } catch (e) {
-          // continue to other methods on failure
           console.warn("window.applyTranslations() threw:", e);
         }
       }
@@ -42,7 +37,6 @@ export default function TermsAndConditions() {
             const key = el.getAttribute("data-i18n");
             if (!key) return;
             const translated = window.i18next.t(key);
-            // If translation exists (not equal to key), apply it
             if (translated && translated !== key) {
               el.innerHTML = translated;
             }
@@ -61,10 +55,7 @@ export default function TermsAndConditions() {
         "en";
       const path = `/i18n/${locale}.json`;
       const res = await fetch(path, { cache: "no-store" });
-      if (!res.ok) {
-        // If not found, don't error loudly; just return
-        return;
-      }
+      if (!res.ok) return;
       const json = await res.json();
       if (!json) return;
       document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -76,16 +67,13 @@ export default function TermsAndConditions() {
         }
       });
     } catch (err) {
-      // Keep the console message, but don't break rendering
       console.warn("applyTranslations error:", err);
     }
   }
 
   useEffect(() => {
-    // Run once on mount
     applyTranslations();
 
-    // Re-run when the <html lang> attribute changes (some i18n libs toggle this)
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.type === "attributes" && m.attributeName === "lang") {
@@ -95,12 +83,10 @@ export default function TermsAndConditions() {
     });
     observer.observe(document.documentElement, { attributes: true });
 
-    // Listen for a custom global event 'languageChanged' (many apps emit similar events)
     const onLangEvent = () => applyTranslations();
     window.addEventListener("languageChanged", onLangEvent);
     window.addEventListener("i18nChanged", onLangEvent);
 
-    // Cleanup
     return () => {
       observer.disconnect();
       window.removeEventListener("languageChanged", onLangEvent);
@@ -109,282 +95,166 @@ export default function TermsAndConditions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The full Terms & Conditions text (exactly as provided)
+  const termsText = `Welcome to Digital Blitz and its services!
+
+Digital Blitz is a partner of the United Nations World Food Programme (WFP). All users of the platform will be donors to this charitable organization. We thank all users on Digital Blitz for their contributions to the charity, hoping that all humanity can enjoy healthy food.
+
+I. Starting Product Maintenance
+
+1.1) Users need a minimum account balance of 100 USDC before beginning a new set of maintenance tasks.
+
+1.2) At least 100 USDC is required to reset the maintenance cycle for a new set.
+
+1.3) After completing all tasks for the day, users must apply for a full withdrawal and receive the withdrawal amount before applying to reset the account.
+
+II. Withdrawal
+
+2.1) For withdrawal amounts of 10,000 USDC or above, please contact our online customer service.
+1: The maximum withdrawal for VIP1 users is 10,000 USDC.
+2: The maximum for VIP2 is 50,000 USDC.
+3: For VIP3, it's 150,000 USDC.
+4: VIP4 users can withdraw up to 500,000 USDC.
+
+2.2) Once the account is reset, users must complete a set of all product maintenance before they can apply for withdrawal.
+
+2.3) Opting out or exiting during the maintenance of combo products will prevent withdrawal or refund applications.
+
+2.4) Withdrawal requests will not be processed if not received from the user.
+
+2.5) Withdrawal applications are impossible with a credit score below 100%. You must restore your account's credit score before applying.
+
+III. Funds
+
+3.1) Funds are stored securely in users' accounts and can be fully withdrawn after completing all product maintenance.
+
+3.2) To prevent fund loss, all data processing is handled by the system without manual intervention.
+
+3.3) The platform takes full responsibility for any accidental loss of funds.
+
+IV. Account Security
+
+4.1) Do not share your login password and security code with others. The platform isn't responsible for any loss incurred from shared credentials.
+
+4.2) Avoid using personal information such as your birthday or ID number as your security code or login password.
+
+4.3) If you forget your login details, please contact our online customer service to reset them.
+
+V. Standard Applications
+
+5.1) Platform earnings are categorized into normal earnings and multiple earnings (more than 6 times). In a set of product data, users typically encounter 1-2 combo products and can receive up to 3 combo products.
+
+5.2) VIP1 earns a 0.4% commission for each standard maintenance product.
+
+5.3) VIP1 earns more than a 2.4% commission for each maintenance of combo products.
+
+5.4) After maintenance completion, funds and earnings are returned to the user's account.
+
+5.5) The system allocates product value to users' accounts randomly, based on the real-time balance.
+
+VI. Combo Products
+
+6.1) Combo products consist of 1-3 products, and users are not guaranteed to receive 3 products. The system randomly allocates standard products based on the user's account funds, with a higher likelihood of receiving 1-2 products in a combo.
+
+6.2) Users receive more than 6 times the commission of a standard product for each product in the combo products.
+
+6.3) All funds stop rolling until you complete the orders for each product in the combo and return them to your account.
+
+6.4) The system randomly allocates combo products to users' accounts based on the total account balance.
+
+6.5) Once a combo product is allocated to a user, it cannot be canceled or skipped. Users must clear the account negative before they can submit the order for the combo product and apply for withdrawal after completing all tasks.
+
+VII. Deposit
+
+7.1) The deposit amount is chosen by the user; the platform cannot make this decision for the user. It is advised to select the amount according to one's financial capacity.
+
+7.2) Users advised to prepay a deposit upon receiving combo products should do so based on the insufficient amount displayed in their account.
+
+7.3) Before prepaying, you must consult with online customer service for details and confirm the deposit.
+
+7.4) If a user deposits into the incorrect address, the platform is not responsible for any losses incurred.
+
+7.5) During the platform's promotional period, to further reward our valued users and allow them to earn more commissions, the system will automatically upgrade any account to VIP4 status if the user's funds exceed 20,000 USDC.
+
+VIII. Merchant Collaboration
+
+8.1) The platform has various products going online and offline. If a product is not maintained in a timely manner, it can negatively affect the product's reputation. Users are encouraged to complete all product maintenance promptly.
+
+8.2) Merchants provide deposit details for user deposits.
+
+8.3) Delays in completing product maintenance can result in losses for merchants and disrupt the process.
+
+IX. Agent/User Responsibilities
+
+9.1) Agents/users must complete the maintenance of the entire set of products within 24 hours. Otherwise, it may result in some functionalities of the account being restricted by the system, and you will need to contact online customer service to lift the account restrictions.
+
+9.2) Combo products are distributed randomly by the system. Users must fully understand the platform rules and choose their deposit amount based on their financial situation. Once allocated combo products, users can earn more than 6 times the commission, but they need to complete the clearance/deposit for the combo products within the specified 24 hours. Failure to do so can affect the reputation of the combo products, impact the user's account credit score, and the user will bear all responsibilities.
+
+X. Invitation
+
+10.1) Agents can invite other users through the invitation code on their account.
+
+10.2) If the account has not completed all product maintenance, it cannot invite other users.
+
+10.3) The referrer will receive an additional 20% of the total product commission from the referred person for the day, excluding commissions.`;
+
   return (
-    <div className="relative bg-white h-screen w-full">
-      {/* Fixed top bar */}
-      <div className="fixed top-0 left-0 right-0 bg-[#2d2d2d] text-white flex items-center justify-between p-4 z-10">
+    <div style={{ minHeight: "100vh", background: "#efe9e3", fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
+      {/* Black fixed header */}
+      <div style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        height: 64,
+        background: "#111",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 40,
+        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.02)"
+      }}>
         <button
           onClick={() => navigate(-1)}
-          className="text-xl font-bold"
           aria-label="Back"
           style={{
-            background: "none",
+            position: "absolute",
+            left: 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "transparent",
             border: "none",
-            padding: 0,
-            margin: 0,
+            padding: 8,
             cursor: "pointer",
-            lineHeight: 1,
-            display: "flex",
-            alignItems: "center",
+            color: "#fff",
           }}
         >
-          <svg width={28} height={28} viewBox="0 0 22 22">
-            <polyline
-              points="14,5 8,11 14,17"
-              fill="none"
-              stroke={START_BLUE}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="15 6 9 12 15 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <div className="text-base font-semibold" data-i18n="Terms and Conditions">
-          Terms and Conditions
+
+        <div style={{ fontWeight: 800, fontSize: 18 }}>Terms and Conditions</div>
+
+        <div style={{ position: "absolute", right: 14, width: 24 }} />
+      </div>
+
+      {/* Spacer for header */}
+      <div style={{ height: 72 }} />
+
+      {/* Centered white card; no inner fixed height — the document scrolls */}
+      <main style={{ maxWidth: 980, margin: "0 auto", padding: "16px", boxSizing: "border-box" }}>
+        <div style={{
+          background: "#ffffff",
+          borderRadius: 12,
+          padding: "20px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+          // removed maxHeight/overflow so the card grows with content and the page scrolls
+        }}>
+          <div style={{ whiteSpace: "pre-wrap", color: "#222", lineHeight: 1.6, fontSize: 14 }}>
+            {termsText}
+          </div>
         </div>
-        <div className="w-6" /> {/* Empty space for alignment */}
-      </div>
-
-      {/* Scrollable content below the fixed header */}
-      <div className="absolute top-16 bottom-0 left-0 right-0 overflow-y-auto p-4 text-sm">
-        <h2 className="font-bold mb-2" data-i18n="I. Starting Optimization Tasks">
-          I. Starting Optimization Tasks
-        </h2>
-        <p>
-          <strong data-i18n="Account Restart Requirement">Account Restart Requirement:</strong>{" "}
-          <span data-i18n="Accounts need a minimum of 100 USDT to start new optimization tasks. Reset tasks must be processed by contacting Customer Service.">
-            Accounts need a minimum of 100 USDT to start new optimization tasks. Reset tasks must be processed by contacting Customer Service.
-          </span>
-        </p>
-        <p>
-          <strong data-i18n="Post-Task Withdrawal Protocol">Post-Task Withdrawal Protocol:</strong>{" "}
-          <span data-i18n="Users must complete two sets of optimization tasks before withdrawing funds; withdrawals are not permitted mid-task">
-            Users must complete two sets of optimization tasks before withdrawing funds; withdrawals are not permitted mid-task
-          </span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="II. Withdrawal Policies">
-          II. Withdrawal Policies
-        </h2>
-        <p>
-          <strong data-i18n="Large Withdrawals and VIP Limits">Large Withdrawals and VIP Limits:</strong>{" "}
-          <span data-i18n="Contact customer service for withdrawals over 10,000 USDT. Withdrawal limits vary by VIP level:">
-            Contact customer service for withdrawals over 10,000 USDT. Withdrawal limits vary by VIP level:
-          </span>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="VIP1: Up to 5,000 GBP">VIP1: Up to 5,000 USDT</li>
-          <li data-i18n="VIP2: Up to 10,000 GBP">VIP2: Up to 10,000 USDT</li>
-          <li data-i18n="VIP3: Up to 20,000 GBP">VIP3: Up to 20,000 USDT</li>
-          <li data-i18n="VIP4: Up to 100,000 GBP">VIP4: Up to 100,000 USDT</li>
-        </ul>
-        <p>
-          <strong data-i18n="Withdrawal Frequency by VIP Level">Withdrawal Frequency by VIP Level:</strong>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="VIP1: 1 withdrawal per day">VIP1: 1 withdrawal per day</li>
-          <li data-i18n="VIP2: 2 withdrawals per day">VIP2: 2 withdrawals per day</li>
-          <li data-i18n="VIP3: 3 withdrawals per day">VIP3: 3 withdrawals per day</li>
-          <li data-i18n="VIP4: 4 withdrawals per day">VIP4: 4 withdrawals per day</li>
-        </ul>
-        <p>
-          <strong data-i18n="Withdrawal After Task Completion">Withdrawal After Task Completion:</strong>{" "}
-          <span data-i18n="Withdrawals can be made upon completion of all tasks.">Withdrawals can be made upon completion of all tasks.</span>
-        </p>
-        <p>
-          <strong data-i18n="Task Completion for Withdrawal">Task Completion for Withdrawal:</strong>{" "}
-          <span data-i18n="Must complete all tasks before withdrawal request.">Must complete all tasks before withdrawal request.</span>
-        </p>
-        <p>
-          <strong data-i18n="No Withdrawal for Incomplete or Abandoned Tasks">No Withdrawal for Incomplete or Abandoned Tasks:</strong>{" "}
-          <span data-i18n="Forfeiture of withdrawal and refund rights if tasks are abandoned or withdrawn from prematurely.">
-            Forfeiture of withdrawal and refund rights if tasks are abandoned or withdrawn from prematurely.
-          </span>
-        </p>
-        <p>
-          <strong data-i18n="User-Initiated Withdrawal Requests">User-Initiated Withdrawal Requests:</strong>{" "}
-          <span data-i18n="Withdrawals processed only upon direct user request.">Withdrawals processed only upon direct user request.</span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="III. Fund Management and Security">
-          III. Fund Management and Security
-        </h2>
-        <p>
-          <strong data-i18n="Secure Funds Holding">Secure Funds Holding:</strong>{" "}
-          <span data-i18n="Funds safely stored and fully accessible post-product optimization.">Funds safely stored and fully accessible post-product optimization.</span>
-        </p>
-        <p>
-          <strong data-i18n="Automated Transaction Processing">Automated Transaction Processing:</strong>{" "}
-          <span data-i18n="To prevent fund loss.">To prevent fund loss.</span>
-        </p>
-        <p>
-          <strong data-i18n="Platform's Responsibility for Fund Loss">Platform's Responsibility for Fund Loss:</strong>{" "}
-          <span data-i18n="Liability for accidental loss of funds.">Liability for accidental loss of funds.</span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="IV. Account Security">
-          IV. Account Security
-        </h2>
-        <p>
-          <strong data-i18n="Keeping Login Details Confidential">Keeping Login Details Confidential:</strong>{" "}
-          <span data-i18n="Non-disclosure of login password and security code.">Non-disclosure of login password and security code.</span>
-        </p>
-        <p>
-          <strong data-i18n="Password and Security Code Advice">Password and Security Code Advice:</strong>{" "}
-          <span data-i18n="Avoid predictable information.">Avoid predictable information.</span>
-        </p>
-        <p>
-          <strong data-i18n="Resetting Forgotten Credentials">Resetting Forgotten Credentials:</strong>{" "}
-          <span data-i18n="Contact customer service for assistance.">Contact customer service for assistance.</span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="V. Product Earnings and Task Assignment">
-          V. Product Earnings and Task Assignment
-        </h2>
-        <p>
-          <strong data-i18n="Earnings Categories">Earnings Categories:</strong>{" "}
-          <span data-i18n="Regular and six-fold categories. Daily tasks offer 1–8 chances for six-fold earnings.">
-            Regular and six-fold categories. Daily tasks offer 1–8 chances for six-fold earnings.
-          </span>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="VIP1: 0.5% standard, 3% combined">VIP1: 0.5% standard, 3% combined</li>
-          <li data-i18n="VIP2: 1% standard, 6% combined">VIP2: 1% standard, 6% combined</li>
-          <li data-i18n="VIP3: 1.5% standard, 9% combined">VIP3: 1.5% standard, 9% combined</li>
-          <li data-i18n="VIP4: 2% standard, 12% combined">VIP4: 2% standard, 12% combined</li>
-        </ul>
-        <p>
-          <strong data-i18n="Earnings and Funds Crediting">Earnings and Funds Crediting:</strong>{" "}
-          <span data-i18n="Post-task completion.">Post-task completion.</span>
-        </p>
-        <p>
-          <strong data-i18n="Random Task Assignments">Random Task Assignments:</strong>{" "}
-          <span data-i18n="Based on total account balance.">Based on total account balance.</span>
-        </p>
-        <p>
-          <strong data-i18n="Non-Cancellable Tasks">Non-Cancellable Tasks:</strong>{" "}
-          <span data-i18n="Once a task is assigned, it cannot be canceled or transferred to others.">
-            Once a task is assigned, it cannot be canceled or transferred to others.
-          </span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="VI. Combined Task Specifics">
-          VI. Combined Task Specifics
-        </h2>
-        <p>
-          <strong data-i18n="Nature of Combined Products">Nature of Combined Products:</strong>{" "}
-          <span data-i18n="1 to 3 items, assigned randomly.">1 to 3 items, assigned randomly.</span>
-        </p>
-        <p>
-          <strong data-i18n="Number of Orders">Number of Orders:</strong>{" "}
-          <span data-i18n="1–8 high commission combinations are normal.">1–8 high commission combinations are normal.</span>
-        </p>
-        <p>
-          <strong data-i18n="Increased Commissions">Increased Commissions:</strong>{" "}
-          <span data-i18n="Six-fold commission compared to regular products.">Six-fold commission compared to regular products.</span>
-        </p>
-        <p>
-          <strong data-i18n="Handling of Funds">Handling of Funds:</strong>{" "}
-          <span data-i18n="Used for product trade submissions, reimbursed upon completion.">Used for product trade submissions, reimbursed upon completion.</span>
-        </p>
-        <p>
-          <strong data-i18n="Balance-Based Allocation">Balance-Based Allocation:</strong>{" "}
-          <span data-i18n="Allocation based on total account balance.">Allocation based on total account balance.</span>
-        </p>
-        <p>
-          <strong data-i18n="Irrevocable Assignments">Irrevocable Assignments:</strong>{" "}
-          <span data-i18n="Cannot be canceled or skipped once assigned.">Cannot be canceled or skipped once assigned.</span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="VII. Deposit Conditions">
-          VII. Deposit Conditions
-        </h2>
-        <p>
-          <strong data-i18n="Verifying Deposit Addresses">Verifying Deposit Addresses:</strong>{" "}
-          <span data-i18n="Confirm addresses with customer service.">Confirm addresses with customer service.</span>
-        </p>
-        <p>
-          <strong data-i18n="Incorrect Deposit Responsibility">Incorrect Deposit Responsibility:</strong>{" "}
-          <span data-i18n="User bears losses if deposits are not verified.">User bears losses if deposits are not verified.</span>
-        </p>
-        <p>
-          <strong data-i18n="Additional Details">Additional Details:</strong>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="4.1: Align deposits with financial ability.">4.1: Align deposits with financial ability.</li>
-          <li data-i18n="4.2: Deposit according to negative balance.">4.2: Deposit according to negative balance.</li>
-          <li data-i18n="4.3: Confirm daily updated valid deposit address.">4.3: Confirm daily updated valid deposit address.</li>
-          <li data-i18n="4.4: Unverified address = user bears risk.">4.4: Unverified address = user bears risk.</li>
-        </ul>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="VIII. Merchant Task Cooperation">
-          VIII. Merchant Task Cooperation
-        </h2>
-        <p>
-          <strong data-i18n="Impact of Delayed Completion">Impact of Delayed Completion:</strong>{" "}
-          <span data-i18n="Affects merchant operations.">Affects merchant operations.</span>
-        </p>
-        <p>
-          <strong data-i18n="Merchant Deposit Details">Merchant Deposit Details:</strong>{" "}
-          <span data-i18n="Provided specifically.">Provided specifically.</span>
-        </p>
-        <p>
-          <strong data-i18n="Consequences">Consequences:</strong>{" "}
-          <span data-i18n="May lower credit score.">May lower credit score.</span>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="8.1: Complete within 8 hours.">8.1: Complete within 8 hours.</li>
-          <li data-i18n="8.2: Delays lead to complaints and score reduction.">8.2: Delays lead to complaints and score reduction.</li>
-        </ul>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="IX. Invitations and User Eligibility">
-          IX. Invitations and User Eligibility
-        </h2>
-        <p>
-          <strong data-i18n="VIP4 Invitation Rights">VIP4 Invitation Rights:</strong>{" "}
-          <span data-i18n="Available after 30+ working days.">Available after 30+ working days.</span>
-        </p>
-        <p>
-          <strong data-i18n="Restrictions">Restrictions:</strong>{" "}
-          <span data-i18n="Must complete optimizations before inviting.">Must complete optimizations before inviting.</span>
-        </p>
-        <ul className="list-disc ml-5">
-          <li data-i18n="9.1: No invites if tasks aren’t done.">9.1: No invites if tasks aren’t done.</li>
-          <li data-i18n="9.2: Invitation quotas based on performance.">9.2: Invitation quotas based on performance.</li>
-          <li data-i18n="9.3: 20% profit reward from subordinates.">9.3: 20% profit reward from subordinates.</li>
-        </ul>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="X. Operational Hours">
-          X. Operational Hours
-        </h2>
-        <p>
-          <strong data-i18n="Platform">Platform:</strong>{" "}
-          <span data-i18n="10:00–21:59:59 (UTC-00:00)">10:00–21:59:59 (UTC-00:00)</span>
-        </p>
-        <p>
-          <strong data-i18n="Customer Service">Customer Service:</strong>{" "}
-          <span data-i18n="10:00–21:59:59 (UTC-00:00)">10:00–21:59:59 (UTC-00:00)</span>
-        </p>
-        <p>
-          <strong data-i18n="Withdrawals">Withdrawals:</strong>{" "}
-          <span data-i18n="10:00–21:59:59 (UTC-00:00)">10:00–21:59:59 (UTC-00:00)</span>
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="XI. Personal Income Tax Compliance">
-          XI. Personal Income Tax Compliance
-        </h2>
-        <p data-i18n="The Platform operates in compliance with local country tax laws. Users are responsible for declaring and paying taxes on any income. Tax thresholds may vary based on local regulations.">
-          The Platform operates in compliance with local country tax laws. Users are responsible for declaring and paying taxes on any income. Tax thresholds may vary based on local regulations.
-        </p>
-
-        <h2 className="font-bold mt-4 mb-2" data-i18n="XII. Confidentiality and Non-Disclosure Agreement">
-          XII. Confidentiality and Non-Disclosure Agreement
-        </h2>
-        <p data-i18n="Upon registering, you agree to keep all platform data and operations strictly confidential, even after leaving the platform. Violation may result in legal action and account termination.">
-          Upon registering, you agree to keep all platform data and operations strictly confidential, even after leaving the platform. Violation may result in legal action and account termination.
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
-

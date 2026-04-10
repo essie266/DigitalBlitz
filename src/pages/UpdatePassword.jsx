@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const START_BLUE = "#1fb6fc";
+const API_URL = "https://stacksapp-backend.onrender.com";
 
-// FadeMessage overlay, copy from your login page
+/**
+ * FadeMessage overlay (keeps same behavior as your original)
+ */
 function FadeMessage({ message, onDone, duration = 1000 }) {
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (onDone) onDone();
     }, duration);
@@ -18,48 +21,41 @@ function FadeMessage({ message, onDone, duration = 1000 }) {
     <div
       style={{
         position: "fixed",
-        top: 0, left: 0, width: "100vw", height: "100vh",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         zIndex: 10000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        pointerEvents: "none"
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
       }}
     >
       <div
         style={{
-          background: "rgba(60, 60, 60, 0.94)",
+          background: "rgba(60,60,60,0.94)",
           color: "#fff",
           borderRadius: 16,
           padding: "1.1rem 2.2rem",
           fontWeight: 600,
-          fontSize: "1.19rem",
-          boxShadow: "0 2px 16px 0 #0003",
-          opacity: 0.97,
+          fontSize: "1.05rem",
+          boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
+          opacity: 0.98,
           textAlign: "center",
-          minWidth: "140px",
+          minWidth: 140,
           maxWidth: "80vw",
-          textTransform: "none",
-          letterSpacing: "0.01em",
-          animation: "fade-in-out-anim 1s linear"
         }}
       >
-        <span data-i18n={message}>{message}</span>
+        <span>{message}</span>
       </div>
-      <style>
-        {`
-        @keyframes fade-in-out-anim {
-          0% { opacity: 0; transform: scale(0.98);}
-          10% { opacity: 1; transform: scale(1);}
-          90% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        `}
-      </style>
     </div>
   );
 }
 
 export default function UpdatePassword() {
   const navigate = useNavigate();
+
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,40 +63,42 @@ export default function UpdatePassword() {
   const [fadeMsg, setFadeMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Clean up any stale states on mount if needed
+  useEffect(() => {
+    setErrorMsg("");
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
     if (newPassword !== confirmPassword) {
-      const msg = "New passwords do not match";
-      setErrorMsg(msg);
+      setErrorMsg("New passwords do not match");
       return;
     }
 
     setLoading(true);
     try {
       const token = localStorage.getItem("authToken");
-      const BASE_URL = "https://stacksapp-backend.onrender.com";
-      const res = await fetch(`${BASE_URL}/api/change-password`, {
+      const res = await fetch(`${API_URL}/api/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token, // NOTE: lowercase 'x-auth-token'
+          "x-auth-token": token || "",
         },
         body: JSON.stringify({ oldPassword, newPassword }),
       });
       const data = await res.json();
       setLoading(false);
 
-      if (data.success) {
-        const successMsg = "Password updated successfully!";
-        setFadeMsg(successMsg);
-        // Clear sensitive local data and force re-login
+      if (data?.success) {
+        setFadeMsg("Password updated successfully!");
+        // Clear sensitive data and redirect to login after fade
         localStorage.removeItem("currentUser");
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
       } else {
-        setErrorMsg(data.message || "Password update failed.");
+        setErrorMsg(data?.message || "Password update failed.");
       }
     } catch (err) {
       setLoading(false);
@@ -108,123 +106,196 @@ export default function UpdatePassword() {
     }
   };
 
-  // Handle fade success message, then redirect
-  React.useEffect(() => {
-    if (fadeMsg) {
-      const timeout = setTimeout(() => {
-        setFadeMsg("");
-        navigate("/login");
-      }, 1000); // 1s for fade, then redirect
-      return () => clearTimeout(timeout);
-    }
+  // After success message, redirect to login
+  useEffect(() => {
+    if (!fadeMsg) return;
+    const t = setTimeout(() => {
+      setFadeMsg("");
+      navigate("/login");
+    }, 1000);
+    return () => clearTimeout(t);
   }, [fadeMsg, navigate]);
 
   return (
-    <div className="min-h-screen bg-white pb-20 flex items-center justify-center" style={{ alignItems: "flex-start" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#efebe6", // page beige (matches screenshot)
+        fontFamily:
+          "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+      }}
+    >
       {fadeMsg && <FadeMessage message={fadeMsg} />}
-      <div className="w-full max-w-md">
-        {/* Header - now flush to top, with blue back arrow */}
-        <div
-          className="bg-[#2d2d2d] text-white text-center py-3 font-semibold text-lg relative flex items-center justify-center"
-          style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+
+      {/* Fixed black header */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: "#111",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#fff",
+          zIndex: 60,
+          boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.02)",
+        }}
+      >
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Back"
+          style={{
+            position: "absolute",
+            left: 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "transparent",
+            border: "none",
+            padding: 8,
+            cursor: "pointer",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+          }}
         >
-          <button
-            aria-label="Back"
-            data-i18n-aria="Back"
-            onClick={() => navigate(-1)}
-            style={{
-              position: "absolute",
-              left: 16,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              padding: 0,
-              margin: 0,
-              cursor: "pointer",
-              lineHeight: 1,
-              zIndex: 1,
-            }}
-          >
-            <svg width={28} height={28} viewBox="0 0 22 22">
-              <polyline
-                points="14,5 8,11 14,17"
-                fill="none"
-                stroke={START_BLUE}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <span data-i18n="Update Password">Update Password</span>
-        </div>
-        <div className="bg-white shadow rounded-b px-8 py-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Old Password"
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="15 6 9 12 15 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        <div style={{ fontWeight: 800, fontSize: 18 }}>Update Password</div>
+      </div>
+
+      {/* Spacer so content sits below header */}
+      <div style={{ height: 80 }} />
+
+      {/* Form container */}
+      <div
+        style={{
+          maxWidth: 820,
+          margin: "0 auto",
+          padding: "12px 20px 80px",
+          boxSizing: "border-box",
+        }}
+      >
+        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+          {/* Old Password */}
+          <div style={{ marginBottom: 18 }}>
+            <label
+              htmlFor="oldPassword"
+              style={{ display: "block", marginBottom: 8, color: "#555", fontWeight: 700, fontSize: 18 }}
+            >
+              Old Password
+            </label>
+            <input
+              id="oldPassword"
               type="password"
               value={oldPassword}
-              onChange={setOldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="Old Password"
+              required
+              style={{
+                width: "100%",
+                background: "#ffffff",
+                borderRadius: 8,
+                padding: "14px 16px",
+                border: "1px solid rgba(0,0,0,0.06)",
+                boxShadow: "0 6px 16px rgba(0,0,0,0.04)",
+                fontSize: 15,
+                color: "#222",
+                boxSizing: "border-box",
+              }}
             />
-            <Input
-              label="New Password"
+          </div>
+
+          {/* New Password */}
+          <div style={{ marginBottom: 18 }}>
+            <label
+              htmlFor="newPassword"
+              style={{ display: "block", marginBottom: 8, color: "#555", fontWeight: 700, fontSize: 18 }}
+            >
+              New Password
+            </label>
+            <input
+              id="newPassword"
               type="password"
               value={newPassword}
-              onChange={setNewPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New Password"
+              required
+              style={{
+                width: "100%",
+                background: "#ffffff",
+                borderRadius: 8,
+                padding: "14px 16px",
+                border: "1px solid rgba(0,0,0,0.06)",
+                boxShadow: "0 6px 16px rgba(0,0,0,0.04)",
+                fontSize: 15,
+                color: "#222",
+                boxSizing: "border-box",
+              }}
             />
-            <Input
-              label="Confirm New Password"
+          </div>
+
+          {/* Confirm New Password */}
+          <div style={{ marginBottom: 20 }}>
+            <label
+              htmlFor="confirmPassword"
+              style={{ display: "block", marginBottom: 8, color: "#555", fontWeight: 700, fontSize: 18 }}
+            >
+              Confirm New Password
+            </label>
+            <input
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
-              onChange={setConfirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm New Password"
+              required
+              style={{
+                width: "100%",
+                background: "#ffffff",
+                borderRadius: 8,
+                padding: "14px 16px",
+                border: "1px solid rgba(0,0,0,0.06)",
+                boxShadow: "0 6px 16px rgba(0,0,0,0.04)",
+                fontSize: 15,
+                color: "#222",
+                boxSizing: "border-box",
+              }}
             />
-            {errorMsg && (
-              <div className="text-red-500 text-sm" data-i18n={errorMsg}>
-                {errorMsg}
-              </div>
-            )}
+          </div>
+
+          {errorMsg && (
+            <div style={{ color: "#d9534f", marginBottom: 12, fontSize: 14 }}>{errorMsg}</div>
+          )}
+
+          {/* Update button (black bar like screenshot) */}
+          <div>
             <button
               type="submit"
-              className="w-full"
-              style={{
-                background: START_BLUE,
-                color: "#fff",
-                padding: "0.5rem",
-                borderRadius: "0.375rem",
-                fontWeight: 600,
-                fontSize: "1rem",
-                marginTop: "0.25rem",
-                transition: "opacity 0.2s",
-                opacity: loading ? 0.7 : 1,
-                border: "none",
-              }}
               disabled={loading}
+              style={{
+                width: "100%",
+                background: "#111",
+                color: "#fff",
+                padding: "14px 18px",
+                borderRadius: 8,
+                fontWeight: 700,
+                fontSize: 15,
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+              }}
             >
-              <span data-i18n={loading ? "Updating..." : "Update"}>
-                {loading ? "Updating..." : "Update"}
-              </span>
+              {loading ? "Updating..." : "Update"}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
-    </div>
-  );
-}
-
-function Input({ label, type, value, onChange }) {
-  return (
-    <div>
-      <label className="block mb-1 font-medium" data-i18n={label}>
-        {label}
-      </label>
-      <input
-        type={type}
-        className="w-full border rounded px-3 py-2"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-      />
     </div>
   );
 }

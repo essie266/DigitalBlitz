@@ -1,202 +1,316 @@
+/* Records.css
+   Updated to match the Records.jsx layout and styles:
+   - Fixed header (tabs) styling and active underline
+   - Record card sizes, spacing, and reduced gaps
+   - Date line, status badge, stars, totals, commission styles
+   - Bottom nav styling consistent with other pages
+   - Minor animations and accessibility improvements
+*/
+
+/* Page container (background & overall spacing) */
 .records-container {
-  background-color: #f5f5f5;
-  padding: 1rem;
+  background-color: #efe9e3; /* page beige background to match mock */
+  padding: 0.75rem;
   min-height: 100vh;
   box-sizing: border-box;
+  /* Keep smooth touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
+/* =========================
+   FIXED TABS HEADER
+   ========================= */
+
+/* The .tabs element is rendered inside a fixed header in JSX; this CSS ensures correct look */
 .tabs {
   display: flex;
-  justify-content: space-around;
-  background-color: #fff;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  align-items: flex-end;
+  /* visual */
 }
 
+/* Each tab (All / Pending / Completed) */
 .tab {
   flex: 1;
   text-align: center;
-  padding: 12px;
-  font-weight: 500;
-  color: #666;
+  padding: 10px 6px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #111;
   cursor: pointer;
-  transition: background 0.3s ease;
+  border-radius: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: color 160ms ease, transform 160ms ease;
+  user-select: none;
 }
 
+/* Active tab visual: underline + bolder */
 .tab.active {
-  color: #007bff;
-  border-bottom: 2px solid #007bff;
-  background-color: #f0f8ff;
+  color: #111; /* heading color */
 }
+
+/* The underline indicator - placed inside the tab (JSX already adjusts borderBottom inline).
+   This CSS provides a consistent fallback and transition for underline changes. */
+.tab > div {
+  padding-bottom: 12px;
+  border-bottom: 4px solid transparent;
+  transition: border-color 180ms ease, padding-bottom 160ms ease;
+}
+
+.tab.active > div {
+  padding-bottom: 6px;
+  border-bottom-color: #181c23; /* BLACK_BG from JSX */
+}
+
+/* Small focus style for keyboard navigation */
+.tab:focus {
+  outline: 3px solid rgba(27,31,35,0.06);
+  outline-offset: 2px;
+}
+
+/* =========================
+   RECORD LIST & CARDS
+   ========================= */
 
 .record-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 10px; /* reduced spacing between records to be denser */
+  padding-bottom: 110px; /* avoid being hidden behind bottom nav */
+  margin-top: 0;
+  box-sizing: border-box;
 }
 
+/* Date line above each card */
+.record-list > div > .date-line,
+.record-list .date-line {
+  color: #bfb7af;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 8px 8px;
+}
+
+/* Card wrapper */
 .record-card {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  padding: 0.8rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.045);
+  padding: 12px;
   position: relative;
+  overflow: hidden;
+  transition: transform 220ms ease, box-shadow 220ms ease;
 }
 
-.record-time {
-  font-size: 0.85rem;
-  color: #888;
-  margin-bottom: 0.5rem;
+/* Slight lift on hover for affordance */
+.record-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
+/* Top-right status badge container (the badge itself is inline in JSX) */
+.record-card .status-badge {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+/* Record content: image + info */
 .record-content {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 1rem;
-  position: relative;
 }
 
+/* Product image on card (increased size) */
 .record-img {
-  width: 70px;
-  height: 70px;
-  object-fit: contain;
-  border-radius: 8px;
-  border: 1px solid #eee;
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #f5f5f5;
+  border: 1px solid #f2f2f2;
+  flex: 0 0 84px;
 }
 
+/* Info area (title, price, stars) */
 .record-info {
   flex: 1;
+  min-width: 0;
 }
 
-.record-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #333;
-  margin-bottom: 4px;
+/* Title line */
+.record-info .truncate {
+  font-size: 17px;
+  font-weight: 700;
+  color: #6e6e6e;
+  margin-bottom: 6px;
+  line-height: 1.15;
+  max-height: 2.4em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.record-price {
-  font-size: 0.9rem;
-  color: #888;
+/* Secondary price line under title */
+.record-info > div {
+  color: #9a9a9a;
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
-.stars {
-  color: gold;
-  font-size: 1rem;
+/* Stars row */
+.record-info .stars {
+  color: #ffcf2e;
+  font-size: 14px;
 }
 
-.record-status {
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
-.badge {
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  border-radius: 12px;
-  color: #fff;
-}
-
-.badge.pending {
-  background-color: #ff6b6b;
-}
-
-.badge.completed {
-  background-color: #007bff;
-}
-
-.badge.frozen {
-  background-color: #888;
-}
-
-.record-footer {
+/* Footer row inside card (Total Amount / Commission) */
+.record-card .card-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.8rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid #eee;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-start;
+  border-top: 1px solid #f1f1f0;
+  padding-top: 10px;
+  margin-top: 6px;
 }
 
-.footer-label {
-  font-size: 0.75rem;
-  color: #999;
+/* Footer labels and values */
+.card-footer .label {
+  color: #a5a5a5;
+  font-size: 12px;
+  margin-bottom: 6px;
 }
 
-.footer-value {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #333;
+.card-footer .value {
+  font-weight: 800;
+  font-size: 16px;
+  color: #222;
 }
 
+/* Submit button */
 .submit-btn {
-  background-color: #007bff;
-  color: white;
-  padding: 6px 14px;
+  background-color: #1fb6fc;
+  color: #fff;
+  padding: 10px 14px;
   border: none;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s ease;
+  width: 100%;
+  transition: box-shadow 160ms ease, transform 120ms ease;
 }
+.submit-btn:active { transform: translateY(1px); }
+.submit-btn:disabled { opacity: 0.7; cursor: default; }
 
-.submit-btn:hover {
-  background-color: #0056b3;
-}
-
-.insufficient-toast {
-  position: fixed;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  pointer-events: none;
-}
-.insufficient-content-grey {
-  background: #f7fafc;
-  color: #333;
-  border: 2px solid #a0aec0;
-  padding: 1.2rem 2.2rem;
-  border-radius: 1.7rem;
-  font-weight: 600;
-  font-size: 1.13rem;
-  box-shadow: 0 6px 32px rgba(0,0,0,0.08);
+/* No-records fallback */
+.no-records {
+  padding: 12px;
+  color: #999;
+  font-size: 14px;
   text-align: center;
-  min-width: 230px;
-  min-height: 70px;
-  display: flex;
+}
+
+/* =========================
+   SMALL UI PIECES & ANIMATIONS
+   ========================= */
+
+/* Quick fade animation used by record items (JSX may also inject inline animation) */
+.animate-fade {
+  animation: fadeEffect 600ms ease;
+}
+@keyframes fadeEffect {
+  0% { opacity: 0.6; transform: translateY(6px); }
+  50% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Small loader (if used elsewhere) */
+.small-loader {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  color: #777;
+  background: rgba(255,255,255,0.95);
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  font-weight: 600;
 }
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: scale(0.95);}
-  10% { opacity: 1; transform: scale(1.05);}
-  90% { opacity: 1; transform: scale(1);}
-  100% { opacity: 0; transform: scale(0.97);}
-}
-.animate-fade-in-out {
-  animation: fadeInOut 3s both;
-}
-.dot-spin {
-  display: inline-block;
-  margin-left: 2px;
-  letter-spacing: 1px;
-}
-.dot-spin:after {
-  content: '';
-  display: inline-block;
-  width: 1em;
-  height: 1em;
+.small-loader .dot {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #ddd;
+  border-top-color: #1fb6fc;
   border-radius: 50%;
-  border: 2px solid #a0aec0;
-  border-top-color: #718096;
-  animation: spin 0.9s linear infinite;
-  margin-left: 8px;
-  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =========================
+   BOTTOM NAV (matches Tasks / Dashboard style)
+   ========================= */
+nav.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: linear-gradient(180deg,#111113,#151516);
+  border-top: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 -4px 14px rgba(0,0,0,0.35);
+}
+
+/* Nav item */
+nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #9b9b9b;
+  cursor: pointer;
+  padding: 8px 6px;
+}
+nav .nav-item.active {
+  color: #ffffff;
+}
+nav .nav-item img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+/* =========================
+   STATUS BADGES
+   ========================= */
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #fff;
+  background: #1f1f1f;
+}
+
+/* other utility tweaks */
+.record-time {
+  font-size: 13px;
+  color: #bfb7af;
+  font-weight: 700;
+}
+
+/* Responsive tweaks */
+@media (max-width: 640px) {
+  .record-img { width: 72px; height: 72px; flex: 0 0 72px; }
+  .tab { font-size: 15px; padding: 8px 4px; }
+  .record-info .truncate { font-size: 16px; }
+  .card-footer .value { font-size: 15px; }
 }

@@ -23,7 +23,26 @@ function normalizeStatus(status) {
 }
 
 const START_BLUE = "#1fb6fc";
-const BLACK_BG = "#181c23";
+const BLACK_BG = "#111"; // use solid black for header and primary buttons
+
+// Format date as YYYY-MM-DD HH:mm:ss in local time
+function formatDateISO(dateValue) {
+  if (!dateValue) return "";
+  try {
+    const d = typeof dateValue === "string" || typeof dateValue === "number" ? new Date(dateValue) : dateValue;
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    const seconds = pad(d.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    return "";
+  }
+}
 
 export default function Withdraw() {
   const [tab, setTab] = useState("withdraw");
@@ -31,6 +50,8 @@ export default function Withdraw() {
   const [amount, setAmount] = useState("");
   const [withdrawPassword, setWithdrawPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("error"); // "error" or "success"
+  const [showTxnModal, setShowTxnModal] = useState(false);
   const navigate = useNavigate();
 
   const { balance, refreshProfile } = useBalance();
@@ -40,40 +61,7 @@ export default function Withdraw() {
   // settings: currency string and format helper
   const { currency, formatAmount } = useSettings();
 
-  const handleWithdraw = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    if (!amount || Number(amount) <= 0) {
-      setMessage("Please enter a valid amount.");
-      return;
-    }
-    if (!withdrawPassword) {
-      setMessage("Please enter your withdrawal password.");
-      return;
-    }
-    const token = localStorage.getItem("authToken");
-    const BASE_URL = "https://stacksapp-backend.onrender.com";
-    const res = await fetch(`${BASE_URL}/api/withdraw`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Auth-Token": token,
-      },
-      body: JSON.stringify({ amount, withdrawPassword }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setMessage("Withdrawal request submitted and is under review.");
-      setAmount("");
-      setWithdrawPassword("");
-      refresh();
-      refreshProfile();
-    } else {
-      setMessage(data.message || "Failed to withdraw.");
-    }
-  };
-
-  const maxCardWidth = 600;
+  const maxCardWidth = 640;
 
   // Filter withdrawals by normalized status for history tabs
   const filteredWithdrawals = (withdrawals || []).filter(
@@ -87,315 +75,476 @@ export default function Withdraw() {
     return n.toFixed(2);
   };
 
+  // Called when user presses the large Withdraw button on the form.
+  // Instead of directly submitting, open the modal exactly like the screenshot.
+  const onOpenTxnModal = (e) => {
+    e && e.preventDefault();
+    setMessage("");
+    setShowTxnModal(true);
+  };
+
+  // Actual withdraw submission performed by the modal's Submit button
+  const performWithdraw = async () => {
+    setMessage("");
+    setMessageType("error");
+
+    if (!amount || Number(amount) <= 0) {
+      setMessage("Please enter a valid amount.");
+      setShowTxnModal(false);
+      return;
+    }
+    if (!withdrawPassword) {
+      setMessage("Please enter your withdrawal password.");
+      return;
+    }
+    const token = localStorage.getItem("authToken");
+    const BASE_URL = "https://stacksapp-backend.onrender.com";
+    try {
+      const res = await fetch(`${BASE_URL}/api/withdraw`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Auth-Token": token,
+        },
+        body: JSON.stringify({ amount, withdrawPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Withdrawal request submitted and is under review.");
+        setMessageType("success");
+        setAmount("");
+        setWithdrawPassword("");
+        setShowTxnModal(false);
+        try { refresh(); } catch (e) {}
+        try { refreshProfile(); } catch (e) {}
+      } else {
+        setMessage(data.message || "Failed to withdraw.");
+        setMessageType("error");
+      }
+    } catch (err) {
+      setMessage("Network error. Please try again.");
+      setMessageType("error");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white pb-16" style={{fontFamily: "system-ui, Arial, sans-serif"}}>
+    <div className="min-h-screen" style={{ background: "#efe9e3", fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial", paddingBottom: 84 }}>
       {/* Header */}
       <div style={{
-        background: "#464b4e",
+        background: BLACK_BG,
         color: "white",
         textAlign: "center",
-        fontWeight: 700,
-        fontSize: 22,
+        fontWeight: 800,
+        fontSize: 20,
         padding: "14px 0",
         position: "relative"
       }}>
         <button
           onClick={() => navigate(-1)}
           style={{
-            position: "absolute", left: 18, top: "50%",
+            position: "absolute", left: 14, top: "50%",
             transform: "translateY(-50%)",
-            background: "none",
+            background: "transparent",
             border: "none",
             padding: 0,
             margin: 0,
             cursor: "pointer",
-            lineHeight: 1,
             display: "flex",
             alignItems: "center",
           }}
           aria-label="Back"
         >
-          <svg width={28} height={28} viewBox="0 0 22 22">
+          <svg width={20} height={20} viewBox="0 0 24 24" style={{ color: "#fff" }}>
             <polyline
-              points="14,5 8,11 14,17"
+              points="15 6 9 12 15 18"
               fill="none"
-              stroke={START_BLUE}
-              strokeWidth="2.5"
+              stroke="#fff"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
         </button>
-        <span data-i18n="Withdraw">Withdraw</span>
+        <div style={{ fontSize: 20, fontWeight: 800 }}>Withdraw</div>
       </div>
 
       {/* Tabs */}
       <div style={{
         display: "flex",
         justifyContent: "center",
-        borderBottom: "1px solid #eaeaea",
+        alignItems: "center",
         background: "#fff",
-        marginBottom: 0,
-        fontSize: 0
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
       }}>
         <button
           style={{
             flex: 1,
-            padding: "20px 0 10px 0",
-            fontWeight: 600,
-            fontSize: 20,
-            color: tab === "withdraw" ? "#222" : "#888",
+            padding: "18px 0 10px 0",
+            fontWeight: 700,
+            fontSize: 18,
+            color: tab === "withdraw" ? "#111" : "#888",
             background: "none",
             border: "none",
-            borderBottom: tab === "withdraw" ? "3px solid #2196d6" : "3px solid transparent",
-            outline: "none",
+            borderBottom: tab === "withdraw" ? "3px solid #111" : "3px solid transparent",
             cursor: "pointer"
           }}
           onClick={() => setTab("withdraw")}
-        ><span data-i18n="Withdraw">Withdraw</span></button>
+        >
+          Withdraw
+        </button>
+
         <button
           style={{
             flex: 1,
-            padding: "20px 0 10px 0",
-            fontWeight: 600,
-            fontSize: 20,
-            color: tab === "history" ? "#222" : "#888",
+            padding: "18px 0 10px 0",
+            fontWeight: 700,
+            fontSize: 18,
+            color: tab === "history" ? "#111" : "#888",
             background: "none",
             border: "none",
-            borderBottom: tab === "history" ? "3px solid #2196d6" : "3px solid transparent",
-            outline: "none",
+            borderBottom: tab === "history" ? "3px solid #111" : "3px solid transparent",
             cursor: "pointer"
           }}
           onClick={() => setTab("history")}
-        ><span data-i18n="History">History</span></button>
+        >
+          History
+        </button>
       </div>
 
       {/* Withdraw Tab */}
       {tab === "withdraw" ? (
         <>
-          {/* Card */}
+          {/* Account card (dark rounded) */}
           <div
             style={{
-              background: "#2196d6",
-              borderRadius: 20,
-              margin: "28px auto 18px auto",
+              background: "linear-gradient(180deg,#3a3a3b,#2a2a2a)",
+              borderRadius: 14,
+              margin: "20px auto",
               maxWidth: maxCardWidth,
-              boxShadow: "0 4px 16px 0 rgba(0,0,0,0.07)",
-              padding: 0,
-              overflow: "hidden",
-              minHeight: 120,
-              width: "95%",
-              display: "flex",
-              alignItems: "center"
+              boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+              padding: 20,
+              width: "94%",
             }}
           >
-            <div style={{padding: 22, width: "100%"}}>
-              <div style={{fontWeight: 700, color: "#fff", fontSize: 18, marginBottom: 2}} data-i18n="Account Amount">
-                Account Amount
+            <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", marginBottom: 8 }}>Account Amount</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+              <div style={{ fontSize: 34, fontWeight: 800, color: "#fff", lineHeight: 1 }}>
+                {fmtNum(balance)}
               </div>
-              <div style={{display: "flex", alignItems: "flex-end", gap: 6}}>
-                <span style={{fontSize: 38, fontWeight: 700, color: "#fff", letterSpacing: 1}}>
-                  {fmtNum(balance)}
-                </span>
-                <span style={{fontSize: 18, fontWeight: 600, color: "#fff", paddingBottom: 5}} data-i18n="GBP">{currency || ""}</span>
-              </div>
-              <div style={{color: "#fff", fontSize: 14, marginTop: 7}} data-i18n="You will receive your withdrawal within an hour">
-                You will receive your withdrawal within an hour
-              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.8)", paddingBottom: 4 }}>{currency || ""}</div>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.78)", marginTop: 10, fontSize: 14 }}>
+              You will receive your withdrawal within an hour
             </div>
           </div>
 
           {/* Withdraw Form */}
           <form
-            onSubmit={handleWithdraw}
+            onSubmit={(e) => { e.preventDefault(); onOpenTxnModal(e); }}
             autoComplete="off"
             style={{
               margin: "0 auto",
-              marginBottom: 0,
               maxWidth: maxCardWidth,
-              width: "95%",
-              borderRadius: 13,
-              background: "#fff",
-              boxShadow: "0 4px 12px 0 rgba(0,0,0,.08)",
-              padding: 24,
+              width: "94%",
+              borderRadius: 8,
+              background: "transparent",
+              paddingTop: 6,
               display: "flex",
               flexDirection: "column",
               gap: 18
             }}
           >
             <div>
-              <label style={{display: "block", color: "#222", fontWeight: 700, marginBottom: 8, fontSize: 16}} data-i18n="Withdraw Amount">
-                Withdraw Amount
-              </label>
-              <input
-                type="number"
-                min="1"
-                step="any"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 7,
-                  background: "#eaf2fb",
-                  border: "none",
-                  fontSize: 18,
-                  color: "#222",
-                  marginBottom: 0
-                }}
-                placeholder="Withdraw Amount"
-                data-i18n-placeholder="Withdraw Amount"
-                required
-              />
+              <label style={{ display: "block", color: "#666", fontWeight: 700, marginBottom: 8, fontSize: 16 }}>Withdraw Amount</label>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: "12px 14px",
+                    borderRadius: 6,
+                    background: "#ffffff",
+                    border: "1px solid #e6e6e6",
+                    fontSize: 16,
+                    color: "#222",
+                    boxShadow: "0 1px 0 rgba(0,0,0,0.02)"
+                  }}
+                  placeholder="Withdraw Amount"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setAmount(String(fmtNum(balance)))}
+                  style={{
+                    background: "#111",
+                    color: "#fff",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    border: "none",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 8px rgba(0,0,0,0.08)"
+                  }}
+                >
+                  ALL
+                </button>
+              </div>
             </div>
+
             <div>
-              <label style={{display: "block", color: "#222", fontWeight: 700, marginBottom: 8, fontSize: 16}} data-i18n="Withdrawal Password">
-                Withdrawal Password
-              </label>
+              <label style={{ display: "block", color: "#666", fontWeight: 700, marginBottom: 8, fontSize: 16 }}>Transaction Password</label>
               <input
                 type="password"
                 value={withdrawPassword}
                 onChange={e => setWithdrawPassword(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 7,
-                  background: "#eaf2fb",
-                  border: "none",
-                  fontSize: 18,
+                  padding: "12px 14px",
+                  borderRadius: 6,
+                  background: "#eef6ff", // pale blue input background like screenshot
+                  border: "1px solid #eaeff7",
+                  fontSize: 16,
                   color: "#222",
-                  marginBottom: 0
                 }}
-                placeholder="Withdrawal Password"
-                data-i18n-placeholder="Withdrawal Password"
+                placeholder="Transaction Password"
                 required
               />
             </div>
+
             <button
               type="submit"
               style={{
                 width: "100%",
-                background: "#2196d6",
+                background: "#111",
                 color: "#fff",
-                fontWeight: 500,
-                fontSize: 20,
-                borderRadius: 7,
+                fontWeight: 700,
+                fontSize: 18,
+                borderRadius: 10,
                 border: "none",
-                padding: "13px 0",
-                marginTop: 8,
-                transition: "background 0.2s",
-                cursor: "pointer"
+                padding: "14px 0",
+                marginTop: 6,
+                cursor: "pointer",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.12)"
               }}
             >
-              <span data-i18n="Withdraw">Withdraw</span>
+              Withdraw
             </button>
+
             {message && (
-              <div style={{textAlign: "center", marginTop: 6, fontSize: 15, color: "#d9534f"}}>{message}</div>
+              <div style={{ textAlign: "center", marginTop: 6, fontSize: 15, color: messageType === "success" ? "#18a93c" : "#b13636" }}>{message}</div>
             )}
           </form>
         </>
       ) : (
         // History Tab
-        <div style={{marginTop: 30, width: "100%", maxWidth: maxCardWidth, marginLeft: "auto", marginRight: "auto"}}>
-          {/* History Subtabs */}
+        <div style={{ marginTop: 18, width: "100%", maxWidth: maxCardWidth, marginLeft: "auto", marginRight: "auto", padding: "0 8px 40px 8px" }}>
+          {/* History Subtabs (styled like screenshot) */}
           <div style={{
             display: "flex",
-            border: "1px solid #2196d6",
-            borderRadius: 3,
-            marginBottom: 25,
+            border: "1px solid #ddd",
+            borderRadius: 6,
+            marginBottom: 18,
             overflow: "hidden"
           }}>
-            {["reviewing", "success", "reject"].map(type => (
-              <button
-                key={type}
-                style={{
-                  flex: 1,
-                  padding: "13px 0",
-                  fontWeight: 600,
-                  fontSize: 18,
-                  background: historyTab === type ? "#2196d6" : "#fff",
-                  color: historyTab === type ? "#fff" : "#2196d6",
-                  outline: "none",
-                  border: "none",
-                  borderRight: type !== "reject" ? "1px solid #2196d6" : "none",
-                  transition: "background 0.2s"
-                }}
-                onClick={() => setHistoryTab(type)}
-              >
-                {type === "reviewing" ? (
-                  <span data-i18n="Reviewing">Reviewing</span>
-                ) : type === "success" ? (
-                  <span data-i18n="Completed">Completed</span>
-                ) : (
-                  <span data-i18n="Reject">Reject</span>
-                )}
-              </button>
-            ))}
+            {["reviewing", "success", "reject"].map(type => {
+              const isActive = historyTab === type;
+              return (
+                <button
+                  key={type}
+                  style={{
+                    flex: 1,
+                    padding: "12px 10px",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    background: isActive ? "#111" : "#fff",
+                    color: isActive ? "#fff" : "#222",
+                    outline: "none",
+                    border: "none",
+                    borderRight: type !== "reject" ? "1px solid #ddd" : "none",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => setHistoryTab(type)}
+                >
+                  {type === "reviewing" ? "Reviewing" : type === "success" ? "Success" : "Reject"}
+                </button>
+              );
+            })}
           </div>
+
           {/* Filtered Withdrawals */}
           {loading ? (
-            <p style={{textAlign: "center", fontSize: 16, color: "#888", marginTop: 30}} data-i18n="Loading...">Loading...</p>
+            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }}>Loading...</p>
           ) : filteredWithdrawals.length === 0 ? (
-            <p style={{textAlign: "center", fontSize: 16, color: "#888", marginTop: 30}} data-i18n="No more data...">No more data...</p>
+            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }}>No more data...</p>
           ) : (
-            <div style={{display: "flex", flexDirection: "column", gap: 16}}>
-              {filteredWithdrawals
-                .slice()
-                .reverse()
-                .map((item, index) => {
-                  const amt = fmtNum(item.amount);
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        background: "#fff",
-                        boxShadow: "0 4px 12px 0 rgba(0,0,0,.07)",
-                        borderRadius: 8,
-                        padding: "18px 22px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between"
-                      }}
-                    >
-                      <div>
-                        <div style={{fontWeight: 700, fontSize: 18, color: "#222"}}>
-                          <span style={{ color: BLACK_BG, fontWeight: 700 }}>{currency || ""}</span>{" "}
-                          <span style={{ color: START_BLUE }}>{amt}</span>
-                        </div>
-                        <div style={{fontSize: 14, color: "#888", marginTop: 2}}>
-                          {item.createdAt
-                            ? new Date(item.createdAt).toLocaleString()
-                            : item.date || ""}
-                        </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {filteredWithdrawals.slice().reverse().map((item, index) => {
+                // Map fields to match screenshot layout
+                const rawId = item.orderId || item.txId || item.id || item._id || "";
+                const orderId = rawId ? String(rawId).toUpperCase() : "";
+                const name = item.name || item.userName || item.username || profile?.username || "";
+                const coin = item.coin || item.currency || item.asset || "";
+                const address = item.address || item.walletAddress || item.toAddress || item.receiver || "";
+                const cryptoWallet = item.cryptoWallet || item.walletName || "";
+                const withdrawFee = item.withdrawFee ?? item.fee ?? 0;
+                const actualFee = item.actualFee ?? item.netAmount ?? item.amount ?? 0;
+                const commissionFee = item.commissionFee ?? item.commission ?? 0;
+                const commissionRate = item.commissionRate ?? item.commissionFeeRatio ?? 0;
+
+                const statusKey = normalizeStatus(item.status);
+                const statusColor =
+                  statusKey === "success" ? "#18a93c" :
+                  statusKey === "reject" ? "#b13636" : // maroon-ish
+                  "#f0ad4e"; // reviewing yellow
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      background: "#fff",
+                      boxShadow: "0 4px 12px 0 rgba(0,0,0,0.06)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      fontSize: 14,
+                    }}
+                  >
+                    {/* Order / tx id */}
+                    <div style={{ color: "#666", fontSize: 13, marginBottom: 8, wordBreak: "break-all", fontWeight: 600 }}>{orderId}</div>
+
+                    {/* thin divider */}
+                    <div style={{ height: 1, background: "#f2f2f2", margin: "6px 0 10px 0" }} />
+
+                    {/* details grid (two columns: label on left, value on right) */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", rowGap: 8, columnGap: 12 }}>
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Name</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{name ? `: ${name}` : ":"}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Coin</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{coin ? `: ${coin}` : ":"}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>TRC-20 Wallet Address</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{address ? `: ${address}` : ":"}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Crypto Wallet</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{cryptoWallet ? `: ${cryptoWallet}` : ":"}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Withdraw Fee</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{`: ${fmtNum(withdrawFee)}`}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Actual Fee</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{`: ${fmtNum(actualFee)}`}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Commission Fee</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{`: ${fmtNum(commissionFee)}`}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Commission Fee Ratio</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{`: ${commissionRate}%`}</div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Status</div>
+                      <div style={{ color: statusColor, fontWeight: 800, justifySelf: "end", fontSize: 14 }}>
+                        {statusKey === "success" ? "Success" :
+                          statusKey === "reject" ? (item.status || "Rejected") :
+                          (item.status || "Reviewing")}
                       </div>
-                      <div style={{
-                        fontWeight: 600,
-                        fontSize: 16,
-                        color:
-                          normalizeStatus(item.status) === "success"
-                            ? "#18a93c"
-                            : normalizeStatus(item.status) === "reject"
-                            ? "#d9534f"
-                            : "#2196d6",
-                        textTransform: "capitalize"
-                      }}>
-                        {/* Show "Completed" instead of "Approved" */}
-                        {normalizeStatus(item.status) === "success" ? (
-                          <span data-i18n="Completed">Completed</span>
-                        ) : (
-                          // If item.status exists, show the raw status (server-provided); otherwise show localized "Reviewing"
-                          item.status ? (
-                            <span>{item.status}</span>
-                          ) : (
-                            <span data-i18n="Reviewing">Reviewing</span>
-                          )
-                        )}
-                      </div>
+
+                      <div style={{ color: "#888", fontWeight: 700, fontSize: 14 }}>Created At</div>
+                      <div style={{ color: "#222", justifySelf: "end", fontSize: 14 }}>{formatDateISO(item.createdAt)}</div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Transaction Password Modal (bottom sheet like screenshot) */}
+      {showTxnModal && (
+        <div
+          onClick={() => setShowTxnModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 12000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            padding: 0,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 900,
+              background: "#fff",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              padding: 22,
+              boxShadow: "0 -6px 30px rgba(0,0,0,0.18)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#222" }}>Transaction Password</div>
+              <button
+                onClick={() => setShowTxnModal(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: 26,
+                  color: "#999",
+                  cursor: "pointer"
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginTop: 8, marginBottom: 18 }}>
+              <input
+                type="password"
+                value={withdrawPassword}
+                onChange={e => setWithdrawPassword(e.target.value)}
+                placeholder="•••••"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 8,
+                  background: "#eef6ff",
+                  border: "1px solid #eaeff7",
+                  fontSize: 16,
+                  color: "#222",
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ padding: "6px 0 12px 0" }}>
+              <button
+                onClick={performWithdraw}
+                style={{
+                  width: "100%",
+                  background: "#111",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 18,
+                  borderRadius: 999,
+                  border: "none",
+                  padding: "14px 0",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

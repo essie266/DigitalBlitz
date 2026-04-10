@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTaskRecords } from "../context/TaskRecordsContext";
 import { useBalance } from "../context/balanceContext";
 import "./Records.css";
 
-import Header from "../components/Header";
+// Header removed per request (Records page shouldn't render header)
 
 // settings (currency)
 import { useSettings } from "../context/SettingsContext";
 
-import homeIcon from "../assets/images/tabBar/homeh.png";
-import startingIcon from "../assets/images/tabBar/icon30.png";
-import recordsIcon from "../assets/images/tabBar/records.png";
+import homeIcon from "../assets/images/tabBar/homes.png";
+import startingIcon from "../assets/images/tabBar/Start.png";
+import recordsIcon from "../assets/images/tabBar/record.png";
+import profileIcon from "../assets/images/tabBar/my3.png";
+
+import BottomNav from "../components/BottomNav.jsx"; // added import
 
 const tabs = ["All", "Pending", "Completed"];
 
 const START_BLUE = "#1fb6fc";
 const BLACK_BG = "#181c23";
+
+// Fixed tabs (header) height in px - used to reserve space so content doesn't go under it
+const TAB_BAR_HEIGHT = 72;
 
 function SpinnerOverlay({ show }) {
   if (!show) return null;
@@ -24,10 +30,15 @@ function SpinnerOverlay({ show }) {
     <div
       style={{
         position: "fixed",
-        top: 0, left: 0, width: "100vw", height: "100vh",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         zIndex: 11000,
         background: "rgba(245,247,251,0.38)",
-        display: "flex", alignItems: "center", justifyContent: "center"
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       <div
@@ -37,7 +48,7 @@ function SpinnerOverlay({ show }) {
           border: "6px solid #ddd",
           borderTop: `6px solid ${START_BLUE}`,
           borderRadius: "50%",
-          animation: "spin 0.8s linear infinite"
+          animation: "spin 0.8s linear infinite",
         }}
       />
       <style>
@@ -101,62 +112,127 @@ const Records = () => {
   const [submitted, setSubmitted] = useState({});
   const [greyToast, setGreyToast] = useState({ show: false, message: "" });
 
-  const [showSpinner, setShowSpinner] = useState(true);
+  // We won't block initial render with spinner; we will refresh immediately and show a quick animation.
+  const [showSpinner, setShowSpinner] = useState(false);
+
+  // Visual feedback states
+  const [tabAnimating, setTabAnimating] = useState(false);
+  const [pageEnterAnim, setPageEnterAnim] = useState(false);
 
   // settings (currency)
   const { currency } = useSettings();
 
-  // On mount: ensure records are refreshed immediately.
-  // Use the returned Promise (refreshRecords may be async) to hide spinner when done.
-  useEffect(() => {
-    setShowSpinner(true);
-    if (refreshRecords) {
-      // call and hide spinner once it completes (or after a short timeout fallback)
-      let didFinish = false;
-      const finish = () => {
-        if (!didFinish) {
-          didFinish = true;
-          setShowSpinner(false);
-        }
-      };
-      const p = refreshRecords();
-      if (p && typeof p.finally === "function") {
-        p.finally(finish);
-      } else {
-        // If refreshRecords doesn't return a promise, fallback to 800ms delay
-        setTimeout(finish, 800);
+  // Utility: schedule work non-blocking (use idle callback when available)
+  const scheduleNonBlocking = (fn) => {
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      try {
+        window.requestIdleCallback(fn, { timeout: 500 });
+      } catch {
+        setTimeout(fn, 0);
       }
     } else {
-      // No refreshRecords available -> fallback to previous behavior
-      const timer = setTimeout(() => {
-        setShowSpinner(false);
-      }, 1000);
-      return () => clearTimeout(timer);
+      setTimeout(fn, 0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount
+  };
 
+  // On mount: refresh in background (non-blocking) and show a short enter animation + success toast
   useEffect(() => {
-    if (showSpinner) return;
-    const interval = setInterval(() => {
-      refreshRecords && refreshRecords();
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [showSpinner, refreshRecords]);
+    if (refreshRecords) {
+      scheduleNonBlocking(() => {
+        try {
+          refreshRecords();
+        } catch (e) {
+          // ignore
+          // console.error("refreshRecords threw on mount:", e);
+        }
+      });
+    }
 
-  function getPendingComboGroups(records) {
+    // Show "Refresh success" immediately (no loading)
+    setGreyToast({ show: true, message: "Refresh success" });
+    const hideToast = setTimeout(() => setGreyToast({ show: false, message: "" }), 800);
+
+    // Trigger a quick enter animation so user sees a transition
+    setPageEnterAnim(true);
+    const t = setTimeout(() => setPageEnterAnim(false), 800);
+
+    return () => {
+      clearTimeout(t);
+      clearTimeout(hideToast);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Also set up a fast periodic refresh but keep it light; still refreshRecords called immediately on mount.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      scheduleNonBlocking(() => {
+        refreshRecords && refreshRecords();
+      });
+    }, 5000); // keep periodic but not too aggressive
+    return () => clearInterval(interval);
+  }, [refreshRecords]);
+
+  // Precompute numeric timestamps to avoid expensive Date parsing in sorts
+  const augmentedRecords = useMemo(() => {
+    if (!Array.isArray(records)) return [];
+    return records.map((r) => {
+      const raw = r.startedAt || r.createdAt || r.completedAt || r.addedAt || r.updatedAt || null;
+      const ts = raw ? Date.parse(raw) || 0 : 0;
+      return { __ts: ts, ...r };
+    });
+  }, [records]);
+
+  // Build combo groups (memoized)
+  const pendingComboGroups = useMemo(() => {
     const groups = {};
-    for (const rec of records) {
-      if (rec.status === "Pending" && rec.comboGroupId) {
+    for (const rec of augmentedRecords) {
+      if (String(rec.status || "").toLowerCase() === "pending" && rec.comboGroupId) {
         if (!groups[rec.comboGroupId]) groups[rec.comboGroupId] = [];
         groups[rec.comboGroupId].push(rec);
       }
     }
-    Object.values(groups).forEach(arr =>
-      arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-    );
+    // sort by precomputed timestamp
+    Object.values(groups).forEach((arr) => arr.sort((a, b) => (a.__ts || 0) - (b.__ts || 0)));
     return groups;
-  }
+  }, [augmentedRecords]);
+
+  // Derive lastPendingComboTaskCodes memoized
+  const lastPendingComboTaskCodes = useMemo(() => {
+    return Object.values(pendingComboGroups).map((comboRecords) => {
+      if (!comboRecords || comboRecords.length === 0) return null;
+      return comboRecords[comboRecords.length - 1].taskCode;
+    }).filter(Boolean);
+  }, [pendingComboGroups]);
+
+  // Filter records by activeTab (memoized)
+  const filteredRecords = useMemo(() => {
+    if (!Array.isArray(augmentedRecords)) return [];
+    const at = (activeTab || "").toLowerCase();
+    return augmentedRecords.filter((record) => {
+      if (at === "all" || !activeTab) return true;
+      return (record.status && String(record.status).toLowerCase() === at);
+    });
+  }, [augmentedRecords, activeTab]);
+
+  // Sorted records (memoized) - uses __ts for date comparison
+  const sortedRecords = useMemo(() => {
+    // Use a stable sort approach with precomputed ts
+    const arr = [...filteredRecords];
+    arr.sort((a, b) => {
+      if (
+        a.comboGroupId &&
+        b.comboGroupId &&
+        a.comboGroupId === b.comboGroupId &&
+        String(a.status || "").toLowerCase() === "pending" &&
+        String(b.status || "").toLowerCase() === "pending"
+      ) {
+        return (b.canSubmit ? 1 : 0) - (a.canSubmit ? 1 : 0);
+      }
+      return (b.__ts || 0) - (a.__ts || 0);
+    });
+    return arr;
+  }, [filteredRecords]);
 
   function getLastPendingComboTaskCode(comboRecords) {
     if (!comboRecords || comboRecords.length === 0) return null;
@@ -185,7 +261,7 @@ const Records = () => {
     }
     setSubmitting((prev) => ({ ...prev, [task.taskCode]: true }));
     setSubmitted((prev) => ({ ...prev, [task.taskCode]: false }));
-    setTimeout(async () => {
+    try {
       const result = await submitTaskRecord(task.taskCode);
       setSubmitting((prev) => ({ ...prev, [task.taskCode]: false }));
       if (!result.success && result.mustDeposit) {
@@ -200,35 +276,16 @@ const Records = () => {
       } else {
         setSubmitted((prev) => ({ ...prev, [task.taskCode]: true }));
         await refreshProfile();
-        refreshRecords && refreshRecords();
+        scheduleNonBlocking(() => { refreshRecords && refreshRecords(); });
         setTimeout(() => {
           setSubmitted((prev) => ({ ...prev, [task.taskCode]: false }));
         }, 1500);
       }
-    }, 3000);
-  };
-
-  const filteredRecords = records.filter(
-    (record) =>
-      activeTab === "All" ||
-      (record.status && record.status.toLowerCase() === activeTab.toLowerCase())
-  );
-
-  const pendingComboGroups = getPendingComboGroups(filteredRecords);
-  const lastPendingComboTaskCodes = Object.values(pendingComboGroups).map(getLastPendingComboTaskCode);
-
-  const sortedRecords = [...filteredRecords].sort((a, b) => {
-    if (
-      a.comboGroupId &&
-      b.comboGroupId &&
-      a.comboGroupId === b.comboGroupId &&
-      a.status === "Pending" &&
-      b.status === "Pending"
-    ) {
-      return (b.canSubmit ? 1 : 0) - (a.canSubmit ? 1 : 0);
+    } catch (err) {
+      setSubmitting((prev) => ({ ...prev, [task.taskCode]: false }));
+      alert("Submission failed");
     }
-    return new Date(b.startedAt || b.createdAt) - new Date(a.startedAt || a.createdAt);
-  });
+  };
 
   const getRecordImage = (product) => {
     if (
@@ -249,237 +306,263 @@ const Records = () => {
     return n.toFixed(2);
   };
 
-  const renderProductRecord = (record, i) => {
-    const isComboRed = record.isCombo && !record.canSubmit && record.status === "Pending";
-    const isComboGrey = record.isCombo && record.canSubmit && record.status === "Pending";
-    const badgeColor =
-      isComboRed
-        ? "bg-red-600 text-white"
-        : isComboGrey
-        ? "bg-gray-400 text-white"
-        : `badge ${record.status?.toLowerCase()}`;
+  // Handle tab clicks: update immediately, call refreshRecords asynchronously and show "Refresh success" only (no loading)
+  const onTabClick = (tab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
 
-    // Status badge on top right
+    // show success toast immediately
+    showGrey("Refresh success", 800);
+
+    // preserve a brief visual fade
+    setTabAnimating(true);
+    setTimeout(() => setTabAnimating(false), 300);
+
+    // defer refreshRecords (non-blocking)
+    scheduleNonBlocking(() => {
+      try {
+        refreshRecords && refreshRecords();
+      } catch (e) {
+        console.error("refreshRecords error on tab click:", e);
+      }
+    });
+  };
+
+  const renderProductRecord = (record, i) => {
+    // Date string
+    const dateStr = record.completedAt
+      ? new Date(record.completedAt).toLocaleString()
+      : record.startedAt
+      ? new Date(record.startedAt).toLocaleString()
+      : record.createdAt
+      ? new Date(record.createdAt).toLocaleString()
+      : "";
+
+    // Determine button color for pending vs others (pending should match tasks modal color)
+    const isPendingButton = String(record.status || "").toLowerCase() === "pending";
+
     return (
-      <div
-        key={getRecordKey(record, i)}
-        className="record-card"
-        style={{
-          background: "#fff",
-          borderRadius: 15,
-          border: "2.4px solid #e7e7e7",
-          boxShadow: "0 1.5px 8px #0001",
-          marginBottom: 18,
-          padding: "16px 16px 14px 16px",
-          position: "relative"
-        }}
-      >
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 6,
-        }}>
-          <div style={{
-            color: "#888",
-            fontSize: 13,
-            fontWeight: 500,
-            textAlign: "left"
-          }}>
-            {record.completedAt
-              ? new Date(record.completedAt).toLocaleString()
-              : record.startedAt
-              ? new Date(record.startedAt).toLocaleString()
-              : record.createdAt
-              ? new Date(record.createdAt).toLocaleString()
-              : ""}
+      <div key={getRecordKey(record, i)} style={{ marginBottom: 10 }}>
+        {/* Date + status row (status placed inline to the right, outside card) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 8px 8px" }}>
+          <div style={{ color: "#bfb7af", fontSize: 13, fontWeight: 700 }}>{dateStr}</div>
+
+          <div>
+            <span
+              style={{
+                padding: "6px 12px",
+                borderRadius: 10,
+                background: record.status === "Completed" ? "#1f1f1f" : "#e0e0e0",
+                color: record.status === "Completed" ? "#fff" : "#666",
+                fontWeight: 700,
+                fontSize: 12,
+                display: "inline-block",
+              }}
+            >
+              {record.status}
+            </span>
           </div>
-          <span className={typeof badgeColor === "string" ? badgeColor : ""} style={{
-            fontSize: 13,
-            fontWeight: 700,
-            padding: "7px 18px",
+        </div>
+
+        <div
+          className={`record-card ${tabAnimating || pageEnterAnim ? "animate-fade" : ""}`}
+          style={{
+            background: "#fff",
             borderRadius: 12,
-            minWidth: 82,
-            textAlign: "center",
-            color: record.status === "Completed" ? "#fff" : undefined,
-            background: record.status === "Completed" ? START_BLUE : undefined,
-            border: record.status === "Completed" ? `2px solid ${START_BLUE}` : undefined
-          }} data-i18n={record.status || ""}>
-            {record.status}
-          </span>
-        </div>
-        <div className="record-content flex items-center gap-3" style={{marginBottom: 6}}>
-          <img
-            src={getRecordImage(record.product)}
-            alt={record.product?.name || "Product"}
-            className="record-img"
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 10,
-              objectFit: "cover",
-              background: "#f5f5f5",
-              border: "1px solid #f2f2f2"
-            }}
-          />
-          <div className="record-info flex-1 min-w-0">
-            <div className="truncate font-semibold text-[17px] text-[#222] mb-1">
-              {record.product?.name}
+            boxShadow: "0 4px 14px rgba(0,0,0,0.045)",
+            marginBottom: 6,
+            padding: "12px 12px",
+            position: "relative",
+          }}
+        >
+          <div className="record-content flex items-center gap-3" style={{ marginBottom: 8 }}>
+            <img
+              src={getRecordImage(record.product)}
+              alt={record.product?.name || "Product"}
+              className="record-img"
+              style={{
+                width: 84, // increased image size
+                height: 84,
+                borderRadius: 12,
+                objectFit: "cover",
+                background: "#f5f5f5",
+                border: "1px solid #f2f2f2",
+                flex: "0 0 84px",
+              }}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/assets/images/products/default.png";
+              }}
+            />
+            <div className="record-info flex-1 min-w-0">
+              <div className="truncate" style={{ fontSize: 17, fontWeight: 700, color: "#6e6e6e", marginBottom: 6 }}>
+                {record.product?.name}
+              </div>
+
+              <div style={{ color: "#9a9a9a", fontSize: 13, marginBottom: 6 }}>
+                {currency || ""} {fmtNum(record.product?.price)}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ color: "#ffcf2e", fontSize: 14, lineHeight: 1 }}>
+                  {/* five stars */}
+                  <span>★</span>
+                  <span>★</span>
+                  <span>★</span>
+                  <span>★</span>
+                  <span>★</span>
+                </div>
+              </div>
             </div>
-            <div className="text-[#222] text-[15px] font-medium">
-              <span style={{ color: BLACK_BG, fontWeight: 700 }}>{currency || ""}</span>{" "}
-              <span style={{ color: START_BLUE }}>{fmtNum(record.product?.price)}</span>
-            </div>
-            <div className="text-yellow-500 mt-1" style={{fontSize: 15, marginTop: 2}}>⭐⭐⭐⭐⭐</div>
           </div>
-        </div>
-        <div className="flex justify-between border-t border-b py-2 mb-1" style={{ borderColor: "#ececec" }}>
-          <div className="text-center flex-1">
-            <div className="font-semibold text-gray-500 text-xs mb-1" data-i18n="Total Amount">Total Amount</div>
-            <div className="font-bold" style={{fontSize:16, color: START_BLUE}}>
-              <span style={{ color: BLACK_BG, fontWeight: 700 }}>{currency || ""}</span>{" "}{fmtNum(record.product?.price)}
+
+          <div className="flex justify-between" style={{ borderTop: "1px solid #f1f1f0", paddingTop: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: "#a5a5a5", fontSize: 12, marginBottom: 6 }}>Total Amount</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#222" }}>
+                {currency || ""} {fmtNum(record.product?.price)}
+              </div>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ color: "#a5a5a5", fontSize: 12, marginBottom: 6 }}>Commission</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#222" }}>
+                {currency || ""} {fmtNum(record.product?.commission)}
+              </div>
             </div>
           </div>
-          <div className="text-center flex-1">
-            <div className="font-semibold text-gray-500 text-xs mb-1" data-i18n="Commission">Commission</div>
-            <div className="font-bold" style={{fontSize:16, color: START_BLUE}}>
-              <span style={{ color: BLACK_BG, fontWeight: 700 }}>{currency || ""}</span>{" "}{fmtNum(record.product?.commission)}
-            </div>
-          </div>
-        </div>
-        {(
+
+          {/* Submit button area (if applicable) */}
+          {(
             ((record.status === "Pending" && (!record.isCombo || record.canSubmit)) ||
-            (submitted[record.taskCode] && record.status === "Completed"))
+              (submitted[record.taskCode] && record.status === "Completed"))
           ) && (
             (!record.comboGroupId ||
               lastPendingComboTaskCodes.includes(record.taskCode) ||
               record.canSubmit) && (
-              <button
-                className={`submit-btn`}
-                style={{
-                  marginTop: 7,
-                  width: "100%",
-                  borderRadius: 13,
-                  padding: "10px 0",
-                  fontWeight: 600,
-                  fontSize: 16,
-                  background: submitted[record.taskCode]
-                    ? START_BLUE
-                    : START_BLUE,
-                  color: "#fff",
-                  opacity: submitting[record.taskCode] ? 0.7 : 1,
-                  boxShadow: `0 1px 8px ${START_BLUE}22`,
-                  transition: "opacity 0.2s"
-                }}
-                onClick={() => handleSubmit(record)}
-                disabled={
-                  submitting[record.taskCode] ||
-                  submitted[record.taskCode]
-                }
-              >
-                <span data-i18n={submitting[record.taskCode] ? "Submitting..." : submitted[record.taskCode] ? "Submitted" : "Submit"}>
-                  {submitting[record.taskCode]
-                    ? "Submitting..."
-                    : submitted[record.taskCode]
-                    ? "Submitted"
-                    : "Submit"}
-                </span>
-              </button>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  className="submit-btn"
+                  style={{
+                    width: "100%",
+                    borderRadius: 12,
+                    padding: "10px 0",
+                    fontWeight: 700,
+                    fontSize: 15,
+                    background: isPendingButton ? BLACK_BG : START_BLUE,
+                    color: "#fff",
+                    opacity: submitting[record.taskCode] ? 0.8 : 1,
+                    boxShadow: `0 4px 14px ${isPendingButton ? `${BLACK_BG}22` : `${START_BLUE}22`}`,
+                  }}
+                  onClick={() => handleSubmit(record)}
+                  disabled={submitting[record.taskCode] || submitted[record.taskCode]}
+                >
+                  {submitting[record.taskCode] ? "Submitting..." : submitted[record.taskCode] ? "Submitted" : "Submit"}
+                </button>
+              </div>
             )
           )}
+        </div>
       </div>
     );
   };
 
-  return (
-    <div className="records-container" style={{ background: "#f5f5f5", minHeight: "100vh", paddingBottom: 78 }}>
-      <Header />
+  // bottom nav helper: derive active using pathname
+  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+  const isActive = (tabKey) => {
+    if (tabKey === "home") return currentPath === "/" || currentPath === "/dashboard";
+    if (tabKey === "starting") return currentPath.startsWith("/tasks") || currentPath.startsWith("/starting");
+    if (tabKey === "records") return currentPath.startsWith("/records");
+    if (tabKey === "profile") return currentPath.startsWith("/profile");
+    return false;
+  };
 
+  // Inline styles and small CSS for animation effects so you don't need to change the separate CSS file
+  const inlineAnimStyles = (
+    <style>{`
+      .animate-fade {
+        animation: fadeEffect 1000ms ease;
+      }
+      @keyframes fadeEffect {
+        0% { opacity: 0.55; transform: translateY(6px); }
+        50% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      /* small helper to ensure content scrolls under fixed header smoothly */
+      .records-container { -webkit-overflow-scrolling: touch; }
+    `}</style>
+  );
+
+  return (
+    <div className="records-container" style={{ background: "#efe9e3", minHeight: "100vh", paddingBottom: 78 }}>
+      {inlineAnimStyles}
       <SpinnerOverlay show={showSpinner} />
       <GreyToast show={greyToast.show} message={greyToast.message} />
 
+      {/* Fixed tabs header - will not scroll with page */}
       <div
-        className="tabs flex justify-between px-2 mt-2 mb-0"
         style={{
-          background: "#f7f7fa",
-          paddingTop: 8,
-          paddingBottom: 8,
-          borderRadius: 18,
-          boxShadow: "0 1px 6px rgba(0,0,0,0.03)",
-          width: "100%",
-          maxWidth: "100vw",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: TAB_BAR_HEIGHT,
+          background: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1200,
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
         }}
       >
-        {tabs.map((tab, idx) => (
-          <div
-            key={tab}
-            className={`tab ${activeTab === tab ? "active" : ""} text-base font-semibold flex-1 mx-0 px-0`}
-            style={{
-              cursor: "pointer",
-              marginLeft: idx === 0 ? 0 : 2,
-              marginRight: idx === tabs.length - 1 ? 0 : 2,
-              padding: "9px 0",
-              textAlign: "center",
-              borderRadius: 18,
-              background: activeTab === tab ? "#e9f8ff" : "#e6e7ea",
-              color: activeTab === tab ? START_BLUE : "#555",
-              boxShadow: activeTab === tab ? `0 2px 4px ${START_BLUE}44` : "none",
-              border: activeTab === tab ? `2.5px solid ${START_BLUE}` : "none",
-              fontWeight: activeTab === tab ? 700 : 600,
-              fontSize: 17,
-              transition: "all 0.15s"
-            }}
-            onClick={() => setActiveTab(tab)}
-            data-i18n={tab}
-          >
-            {tab}
-          </div>
-        ))}
+        <div className="tabs" style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", width: "100%", maxWidth: 980 }}>
+          {tabs.map((tab) => (
+            <div
+              key={tab}
+              className={`tab ${activeTab === tab ? "active" : ""} text-base font-semibold`}
+              style={{
+                cursor: "pointer",
+                padding: "10px 6px",
+                textAlign: "center",
+                borderRadius: 18,
+                fontWeight: activeTab === tab ? 800 : 700,
+                fontSize: 16,
+                flex: 1,
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+              onClick={() => onTabClick(tab)}
+              data-i18n={tab}
+            >
+              <div style={{ paddingBottom: activeTab === tab ? 6 : 12, borderBottom: activeTab === tab ? `4px solid ${BLACK_BG}` : "4px solid transparent" }}>
+                {tab}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Space between tabs and cards */}
-      <div style={{ height: 14 }} />
+      {/* spacer so content sits below fixed tabs */}
+      <div style={{ height: TAB_BAR_HEIGHT }} />
 
-      <div className="record-list px-2">
+      {/* Space between tabs and first card is reduced */}
+      <div style={{ height: 6 }} />
+
+      <div className={`record-list px-2 ${tabAnimating || pageEnterAnim ? "animate-fade" : ""}`} style={{ gap: 10 }}>
         {showSpinner ? (
-          <div style={{height: "120px"}} />
+          <div style={{ height: "80px" }} />
         ) : sortedRecords.length === 0 ? (
-          <p className="no-records text-center text-gray-400 mt-8" data-i18n="No records in this category.">No records in this category.</p>
+          <p className="no-records" style={{ padding: 12, color: "#999" }} data-i18n="No records in this category.">
+            No records in this category.
+          </p>
         ) : (
           sortedRecords.map((record, i) => renderProductRecord(record, i))
         )}
       </div>
 
-      {/* Bottom Tab Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-end py-2 z-40" style={{height: 64}}>
-        <div
-          className="flex flex-col items-center text-xs text-gray-600 cursor-pointer"
-          onClick={() => navigate("/dashboard")}
-        >
-          <img src={homeIcon} alt="Home" className="w-6 h-6 mb-1" />
-          <div data-i18n="Home">Home</div>
-        </div>
-        <div
-          className="flex flex-col items-center text-xs font-semibold cursor-pointer"
-          onClick={() => navigate("/tasks")}
-          style={{ color: "#8fadc7", transform: "translateY(-10px)" }}
-        >
-          <img
-            src={startingIcon}
-            alt="Starting"
-            style={{
-              width: 56,
-              height: 56,
-              marginBottom: 2,
-            }}
-          />
-          <div data-i18n="Starting" style={{ fontSize: "1.13rem", fontWeight: 700, marginTop: -6 }}>Starting</div>
-        </div>
-        <div className="flex flex-col items-center text-xs font-semibold" style={{ color: START_BLUE }}>
-          <img src={recordsIcon} alt="Records" className="w-6 h-6 mb-1" />
-          <div data-i18n="Records">Records</div>
-        </div>
-      </div>
+      {/* Use shared BottomNav component instead of the local inline nav */}
+      <BottomNav />
     </div>
   );
 };

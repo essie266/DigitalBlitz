@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const TaskRecordsContext = createContext();
 
@@ -6,10 +6,21 @@ export const TaskRecordsProvider = ({ children }) => {
   const [records, setRecords] = useState([]);
   const BASE_URL = "https://stacksapp-backend.onrender.com";
 
-  // Fetch records from backend
+  // keep a ref to avoid stale closures and to track last fetched data
+  const latestRecordsRef = useRef([]);
+  const isFetchingRef = useRef(false);
+
+  // Fetch records from backend and return parsed data
   const fetchTaskRecords = async () => {
     const token = localStorage.getItem("authToken");
-    if (!token) return;
+    if (!token) return null;
+
+    // Prevent concurrent identical fetches
+    if (isFetchingRef.current) {
+      return null;
+    }
+    isFetchingRef.current = true;
+
     try {
       const res = await fetch(`${BASE_URL}/api/task-records`, {
         headers: {
@@ -17,43 +28,64 @@ export const TaskRecordsProvider = ({ children }) => {
           "X-Auth-Token": token,
         },
       });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.records)) {
-        setRecords(data.records);
+
+      // If non-OK response, still try to parse json to get error info
+      const data = await res.json().catch(() => null);
+
+      if (data && data.success && Array.isArray(data.records)) {
+        // Avoid unnecessary setState if data didn't change (simple JSON compare)
+        const prev = latestRecordsRef.current;
+        const newJson = JSON.stringify(data.records);
+        const prevJson = JSON.stringify(prev);
+        if (newJson !== prevJson) {
+          latestRecordsRef.current = data.records;
+          setRecords(data.records);
+        }
+        isFetchingRef.current = false;
+        return data.records;
       }
+
+      // not successful -> return whatever parsed
+      isFetchingRef.current = false;
+      return data || null;
     } catch (err) {
-      // Optionally: setRecords([]) or leave unchanged
+      // network/error: swallow but allow caller to handle
+      isFetchingRef.current = false;
+      return null;
     }
   };
 
   // Expose a friendly alias that components already expect (refreshRecords)
-  const refreshRecords = fetchTaskRecords;
+  // Keep as an async function so consumers can await when needed.
+  const refreshRecords = async () => {
+    return fetchTaskRecords();
+  };
 
   // Ensure we fetch records on provider mount if token already exists,
   // and also when authToken appears (login) — handle same-tab and cross-tab changes.
   useEffect(() => {
-    let fetched = false;
-    let pollInterval = null;
+    let didFetch = false;
+    let pollAttempts = 0;
+    const MAX_POLL = 8; // stop after ~8 attempts (~6.4s at 800ms) to avoid continuous polling
 
-    // Try to fetch immediately if token exists
     const tryFetchOnce = async () => {
       const token = localStorage.getItem("authToken");
-      if (token && !fetched) {
-        fetched = true;
+      if (token && !didFetch) {
+        didFetch = true;
         await fetchTaskRecords();
-        if (pollInterval) {
-          clearInterval(pollInterval);
-          pollInterval = null;
-        }
       }
     };
 
-    // Start: immediate attempt
+    // Immediate attempt
     tryFetchOnce();
 
     // Poll for token in same tab for a short period (in some login flows token is set after provider mount)
-    pollInterval = setInterval(() => {
+    const pollInterval = setInterval(() => {
+      pollAttempts += 1;
       tryFetchOnce();
+      if (pollAttempts >= MAX_POLL) {
+        clearInterval(pollInterval);
+      }
     }, 800);
 
     // Also listen for cross-tab changes to authToken (storage event)
@@ -62,26 +94,19 @@ export const TaskRecordsProvider = ({ children }) => {
         // token appeared in another tab -> fetch records now
         fetchTaskRecords();
       }
-      // If token removed, optionally clear records (not doing that now)
     };
     window.addEventListener("storage", onStorage);
 
     return () => {
-      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(pollInterval);
       window.removeEventListener("storage", onStorage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once on provider mount
 
-  useEffect(() => {
-    // Also attempt a fetch on mount (legacy behavior preserved)
-    fetchTaskRecords();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // NOTE: previous code also had an unconditional fetch in another effect — removed to avoid duplicate fetches.
 
   // Add a new task record (start task)
-  // Supports both normal and combo (API will determine which is triggered)
-  // Returns: for combo, { isCombo: true, task, ... }; for normal, { task }
   const addTaskRecord = async (taskObj) => {
     const token = localStorage.getItem("authToken");
     const res = await fetch(`${BASE_URL}/api/start-task`, {
@@ -90,19 +115,15 @@ export const TaskRecordsProvider = ({ children }) => {
         "Content-Type": "application/json",
         "X-Auth-Token": token,
       },
-      body: JSON.stringify({ image: taskObj.image }), // For combo, only image is used as hint
+      body: JSON.stringify({ image: taskObj.image }),
     });
     const data = await res.json();
     if (data.success) {
-      await fetchTaskRecords();
-      // If API returned combo info, pass it along
+      // refresh in background but don't block caller
+      fetchTaskRecords();
       if (data.isCombo) {
-        return {
-          isCombo: true,
-          ...data,
-        };
+        return { isCombo: true, ...data };
       }
-      // Normal task
       return { task: data.task };
     }
     return null;
@@ -121,43 +142,30 @@ export const TaskRecordsProvider = ({ children }) => {
     });
     const data = await res.json();
     if (data.success) {
-      await fetchTaskRecords();
+      // refresh in background; keep non-blocking
+      fetchTaskRecords();
       return data;
     }
     return { success: false, message: data.message, mustDeposit: !!data.mustDeposit };
   };
 
-  // Check for pending normal task (not combo)
-  const hasPendingTask = () =>
-    records.some((t) => t.status === "Pending" && !t.isCombo);
-
-  // Check for pending combo task
-  const hasPendingComboTask = () =>
-    records.some((t) => t.status === "Pending" && t.isCombo);
-
-  // Get current pending normal task (if any)
-  const getPendingTask = () =>
-    records.find((t) => t.status === "Pending" && !t.isCombo) || null;
-
-  // Get current pending combo group (returns array of combo records)
+  // other helpers unchanged
+  const hasPendingTask = () => records.some((t) => t.status === "Pending" && !t.isCombo);
+  const hasPendingComboTask = () => records.some((t) => t.status === "Pending" && t.isCombo);
+  const getPendingTask = () => records.find((t) => t.status === "Pending" && !t.isCombo) || null;
   const getPendingComboTasks = () => {
-    // Find the first pending comboGroupId (if any)
     const combo = records.find((t) => t.status === "Pending" && t.isCombo);
-    if (!combo || !combo.comboGroupId)
-      return [];
-    // Get all records with that comboGroupId
-    return records.filter(
-      (t) => t.status === "Pending" && t.comboGroupId === combo.comboGroupId
-    );
+    if (!combo || !combo.comboGroupId) return [];
+    return records.filter((t) => t.status === "Pending" && t.comboGroupId === combo.comboGroupId);
   };
 
   return (
     <TaskRecordsContext.Provider
       value={{
         records,
-        setRecords, // <-- Expose this for instant updates in the UI!
+        setRecords,
         fetchTaskRecords,
-        refreshRecords, // alias kept for consumers that expect this name
+        refreshRecords,
         addTaskRecord,
         submitTaskRecord,
         hasPendingTask,

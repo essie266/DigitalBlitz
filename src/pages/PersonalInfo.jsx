@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Consistent blue used everywhere else
+// Consistent blue (kept for compatibility but not used in header)
 const START_BLUE = "#1fb6fc";
 
 export default function PersonalInfo() {
@@ -18,91 +18,182 @@ export default function PersonalInfo() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] pb-20">
-      {/* Header */}
-      <div className="bg-[#2d2d2d] text-white text-center py-3 font-semibold text-lg relative flex items-center justify-center">
-        {/* Back Arrow */}
-        <button
-          aria-label="Back"
-          data-i18n-aria="Back"
-          onClick={() => navigate(-1)}
-          style={{
-            position: "absolute",
-            left: 16,
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            padding: 0,
-            margin: 0,
-            cursor: "pointer",
-            lineHeight: 1,
-            zIndex: 1,
-          }}
-        >
-          <svg width={28} height={28} viewBox="0 0 22 22">
-            <polyline
-              points="14,5 8,11 14,17"
-              fill="none"
-              stroke={START_BLUE}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <span data-i18n="Modify information">Modify information</span>
-      </div>
-
-      <div className="bg-white m-4 rounded-lg text-sm shadow">
-        <Item label="Modify Personal Information" isBlue />
-        <Item label="Username" value={user.username} isBlue />
-        <Item label="Phone" value={user.phone} isBlue />
-      </div>
-
-      {/* Password update section */}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#efebe6", // beige background to match screenshot
+        paddingBottom: 20,
+        boxSizing: "border-box",
+        fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+      }}
+    >
+      {/* Header (black with centered white title and white back arrow) */}
       <div
-        className="bg-white m-4 rounded-lg text-sm shadow"
         style={{
-          borderTop: `4px solid ${START_BLUE}`,
+          background: "#111",
+          color: "#fff",
+          height: 64,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.02)",
         }}
       >
         <button
-          onClick={() => navigate("/update-password")}
-          className="w-full text-left px-4 py-3 border-b flex justify-between items-center"
+          aria-label="Back"
+          onClick={() => navigate(-1)}
+          style={{
+            position: "absolute",
+            left: 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "transparent",
+            border: "none",
+            padding: 8,
+            margin: 0,
+            cursor: "pointer",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+          }}
         >
-          <span style={{ color: START_BLUE }} data-i18n="Update Password">
-            Update Password
-          </span>
-          <span className="text-xl text-gray-400">›</span>
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="15 6 9 12 15 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
 
-        <button
-          onClick={() => navigate("/update-withdraw-password")}
-          className="w-full text-left px-4 py-3 flex justify-between items-center"
+        <div style={{ fontWeight: 800, fontSize: 18 }}>Modify information</div>
+      </div>
+
+      {/* Spacer to avoid content hidden behind fixed header */}
+      <div style={{ height: 72 }} />
+
+      {/* Card container */}
+      <div style={{ padding: "12px 16px 24px", boxSizing: "border-box" }}>
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: 8,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
         >
-          <span style={{ color: START_BLUE }} data-i18n="Update Withdrawal Password">
-            Update Withdrawal Password
-          </span>
-          <span className="text-xl text-gray-400">›</span>
-        </button>
+          {/* Row: Modify Personal Information - DISABLED (not navigatable / not clickable) */}
+          <ClickableRow disabled>
+            <div style={{ color: "#111", fontSize: 16, fontWeight: 600 }}>Modify Personal Information</div>
+            <Chevron />
+          </ClickableRow>
+
+          <Divider />
+
+          {/* Username row (not clickable) */}
+          <Row>
+            <div style={{ color: "#111", fontSize: 14 }}>Username</div>
+            <div style={{ color: "#8b8b8b", fontSize: 15, fontWeight: 700 }}>{user.username || "—"}</div>
+          </Row>
+        </div>
+
+        {/* Spacing between sections */}
+        <div style={{ height: 14 }} />
+
+        {/* Password / Transaction Password card */}
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: 8,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <ClickableRow onClick={() => navigate("/update-password")}>
+            <div style={{ color: "#111", fontSize: 14, fontWeight: 800 }}>Update Password</div>
+            <Chevron />
+          </ClickableRow>
+
+          <Divider />
+
+          <ClickableRow onClick={() => navigate("/update-withdraw-password")}>
+            <div style={{ color: "#111", fontSize: 14, fontWeight: 800 }}>Update Transaction Password</div>
+            <Chevron />
+          </ClickableRow>
+        </div>
       </div>
     </div>
   );
 }
 
-function Item({ label, value, isBlue }) {
+/* Helper row components to keep markup consistent and match screenshot styling */
+
+function Row({ children }) {
   return (
-    <div className="flex justify-between items-center px-4 py-3 border-b">
-      <div
-        style={{ color: isBlue ? "#1fb6fc" : "#666", fontWeight: isBlue ? 600 : 400 }}
-        data-i18n={label}
-      >
-        {label}
-      </div>
-      <div className="font-medium" style={{ color: isBlue ? "#1fb6fc" : "#111" }}>
-        {value || "›"}
-      </div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", boxSizing: "border-box" }}>
+      {children}
     </div>
+  );
+}
+
+/*
+  ClickableRow now supports a `disabled` prop.
+  - When disabled: it is non-interactive (no onClick), has aria-disabled, keyboard excluded (tabIndex -1),
+    and shows the same visual style but with default cursor to indicate non-clickable.
+*/
+function ClickableRow({ children, onClick, disabled = false }) {
+  const sharedStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    padding: "16px 18px",
+    boxSizing: "border-box",
+    border: "none",
+    background: "transparent",
+    textAlign: "left",
+  };
+
+  if (disabled) {
+    return (
+      <div
+        role="button"
+        aria-disabled="true"
+        tabIndex={-1}
+        style={{
+          ...sharedStyle,
+          cursor: "default",
+          opacity: 1,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...sharedStyle,
+        cursor: "pointer",
+      }}
+      aria-label="row-action"
+    >
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div style={{ height: 1, background: "#f0f0f0", marginLeft: 0 }} />;
+}
+
+function Chevron() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{ color: "#bdbdbd" }} xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 6L15 12L9 18" stroke="#bdbdbd" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

@@ -13,6 +13,35 @@ const WHATSAPP_URL = "https://wa.me/1234567890"; // replace with your WhatsApp n
 
 const START_BLUE = "#1fb6fc";
 
+/* Utility: format date as YYYY-MM-DD HH:mm:ss (local) */
+function formatDateISO(dateValue) {
+  if (!dateValue) return "";
+  try {
+    const d = typeof dateValue === "string" || typeof dateValue === "number" ? new Date(dateValue) : dateValue;
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    const seconds = pad(d.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    return "";
+  }
+}
+
+/* Helper to format amount like screenshot:
+   - If integer, show without decimals
+   - Otherwise show two decimals
+*/
+function fmtNum(v) {
+  const n = Number(v || 0);
+  if (!Number.isFinite(n)) return "0";
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
+
 export default function Deposit() {
   const [tab, setTab] = useState("deposit");
   const [amount, setAmount] = useState("");
@@ -24,11 +53,13 @@ export default function Deposit() {
   const { deposits, loading } = useTransactions();
 
   // settings context
-  const { currency, formatAmount } = useSettings();
+  const { currency } = useSettings();
+
+  const maxCardWidth = 680;
 
   // When Deposit is clicked, show modal (now opens CustomerServiceModal)
   const handleDeposit = (e) => {
-    e.preventDefault();
+    e && e.preventDefault();
     setShowModal(true);
   };
 
@@ -41,10 +72,8 @@ export default function Deposit() {
     }
   };
 
-  const maxCardWidth = 600;
-
   // Compose all deposit-like entries (normal deposit + admin_add_balance, etc)
-  const allDeposits = deposits.filter(
+  const allDeposits = (deposits || []).filter(
     (deposit) =>
       deposit.type === "deposit" ||
       deposit.type === "admin_add_balance" ||
@@ -54,15 +83,15 @@ export default function Deposit() {
   );
 
   return (
-    <div className="min-h-screen bg-white pb-16" style={{ fontFamily: "system-ui, Arial, sans-serif" }}>
+    <div className="min-h-screen" style={{ background: "#efe9e3", fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial", paddingBottom: 84 }}>
       {/* Header */}
       <div
         style={{
-          background: "#464b4e",
+          background: "#111",
           color: "white",
           textAlign: "center",
-          fontWeight: 700,
-          fontSize: 22,
+          fontWeight: 800,
+          fontSize: 20,
           padding: "14px 0",
           position: "relative",
         }}
@@ -71,32 +100,31 @@ export default function Deposit() {
           onClick={() => navigate(-1)}
           style={{
             position: "absolute",
-            left: 18,
+            left: 14,
             top: "50%",
             transform: "translateY(-50%)",
-            background: "none",
+            background: "transparent",
             border: "none",
             padding: 0,
             margin: 0,
             cursor: "pointer",
-            lineHeight: 1,
             display: "flex",
             alignItems: "center",
           }}
           aria-label="Back"
         >
-          <svg width={28} height={28} viewBox="0 0 22 22">
+          <svg width={20} height={20} viewBox="0 0 24 24" style={{ color: "#fff" }}>
             <polyline
-              points="14,5 8,11 14,17"
+              points="15 6 9 12 15 18"
               fill="none"
-              stroke={START_BLUE}
-              strokeWidth="2.5"
+              stroke="#fff"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
         </button>
-        <span data-i18n="Deposit">Deposit</span>
+        <div style={{ fontSize: 20, fontWeight: 800 }}>Deposit</div>
       </div>
 
       {/* Tabs */}
@@ -104,212 +132,130 @@ export default function Deposit() {
         style={{
           display: "flex",
           justifyContent: "center",
-          borderBottom: "1px solid #eaeaea",
+          borderBottom: "1px solid rgba(0,0,0,0.06)",
           background: "#fff",
-          marginBottom: 0,
-          fontSize: 0,
         }}
       >
         <button
           style={{
             flex: 1,
-            padding: "20px 0 10px 0",
-            fontWeight: 600,
-            fontSize: 20,
-            color: tab === "deposit" ? "#222" : "#888",
+            padding: "18px 0 10px 0",
+            fontWeight: 700,
+            fontSize: 18,
+            color: tab === "deposit" ? "#111" : "#888",
             background: "none",
             border: "none",
-            borderBottom: tab === "deposit" ? "3px solid #2196d6" : "3px solid transparent",
-            outline: "none",
-            cursor: "pointer",
+            borderBottom: tab === "deposit" ? "3px solid #111" : "3px solid transparent",
+            cursor: "pointer"
           }}
           onClick={() => setTab("deposit")}
         >
-          <span data-i18n="Deposit">Deposit</span>
+          Deposit
         </button>
+
         <button
           style={{
             flex: 1,
-            padding: "20px 0 10px 0",
-            fontWeight: 600,
-            fontSize: 20,
-            color: tab === "history" ? "#222" : "#888",
+            padding: "18px 0 10px 0",
+            fontWeight: 700,
+            fontSize: 18,
+            color: tab === "history" ? "#111" : "#888",
             background: "none",
             border: "none",
-            borderBottom: tab === "history" ? "3px solid #2196d6" : "3px solid transparent",
-            outline: "none",
-            cursor: "pointer",
+            borderBottom: tab === "history" ? "3px solid #111" : "3px solid transparent",
+            cursor: "pointer"
           }}
           onClick={() => setTab("history")}
         >
-          <span data-i18n="History">History</span>
+          History
         </button>
       </div>
 
       {/* Deposit Tab */}
       {tab === "deposit" ? (
         <>
-          {/* Card */}
-          <div
-            style={{
-              background: "#2196d6",
-              borderRadius: 20,
-              margin: "28px auto 18px auto",
-              maxWidth: maxCardWidth,
-              boxShadow: "0 4px 16px 0 rgba(0,0,0,0.07)",
-              padding: 0,
-              overflow: "hidden",
-              minHeight: 120,
-              width: "95%",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ padding: 22, width: "100%" }}>
-              <div style={{ fontWeight: 700, color: "#fff", fontSize: 18, marginBottom: 2 }} data-i18n="Account Amount">
-                Account Amount
+          <div style={{ margin: "22px auto", width: "94%", maxWidth: maxCardWidth }}>
+            {/* Account card (dark rounded with big left padding) */}
+            <div
+              style={{
+                background: "linear-gradient(180deg,#3a3a3b,#2a2a2a)",
+                borderRadius: 14,
+                padding: "20px 22px",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+              }}
+            >
+              <div style={{ color: "rgba(255,255,255,0.85)", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Account Amount</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+                <div style={{ fontSize: 34, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{Number(balance || 0).toFixed(2)}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.8)", paddingBottom: 4 }}>{currency || ""}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
-                <span style={{ fontSize: 38, fontWeight: 700, color: "#fff", letterSpacing: 1 }}>
-                  {Number(balance || 0).toFixed(2)}
-                </span>
-                {/* show the raw currency exactly as stored in settings */}
-                <span style={{ fontSize: 18, fontWeight: 600, color: "#fff", paddingBottom: 5 }}>{currency || ""}</span>
-              </div>
+            </div>
+
+            {/* Big Contact button (rounded black) */}
+            <div style={{ marginTop: 28 }}>
+              <button
+                onClick={handleDeposit}
+                style={{
+                  width: "100%",
+                  background: "#111",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  padding: "18px 20px",
+                  borderRadius: 999,
+                  border: "none",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  cursor: "pointer",
+                }}
+              >
+                Contact Customer Service
+              </button>
             </div>
           </div>
 
-          {/* Deposit Form */}
-          <form
-            onSubmit={handleDeposit}
-            autoComplete="off"
-            style={{
-              margin: "0 auto",
-              marginBottom: 0,
-              maxWidth: maxCardWidth,
-              width: "95%",
-              borderRadius: 13,
-              background: "#fff",
-              boxShadow: "0 4px 12px 0 rgba(0,0,0,.08)",
-              padding: 24,
-              display: "flex",
-              flexDirection: "column",
-              gap: 18,
-            }}
-          >
-            <div>
-              <label
-                style={{ display: "block", color: "#222", fontWeight: 700, marginBottom: 8, fontSize: 16 }}
-                data-i18n="Deposit Amount"
-              >
-                Deposit Amount
-              </label>
-              <input
-                type="number"
-                min="1"
-                step="any"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 7,
-                  background: "#eaf2fb",
-                  border: "none",
-                  fontSize: 18,
-                  color: "#222",
-                  marginBottom: 0,
-                }}
-                placeholder="Deposit Amount"
-                data-i18n-placeholder="Deposit Amount"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              style={{
-                width: "100%",
-                background: "#2196d6",
-                color: "#fff",
-                fontWeight: 500,
-                fontSize: 20,
-                borderRadius: 7,
-                border: "none",
-                padding: "13px 0",
-                marginTop: 8,
-                transition: "background 0.2s",
-                cursor: "pointer",
-              }}
-            >
-              <span data-i18n="Contact Customer Service">Contact Customer Service</span>
-            </button>
-            {message && (
-              <div style={{ textAlign: "center", marginTop: 6, fontSize: 15, color: "#18a93c" }}>{message}</div>
-            )}
-          </form>
-
-          {/* Use the shared CustomerServiceModal component instead of inline platform modal */}
-          <CustomerServiceModal open={showModal} onClose={() => setShowModal(false)} />
+          <CustomerServiceModal open={showModal} onClose={() => setShowModal(false)} onContact={handleContact} />
         </>
       ) : (
-        // History Tab
-        <div style={{ marginTop: 30, width: "100%", maxWidth: maxCardWidth, marginLeft: "auto", marginRight: "auto" }}>
+        // History Tab (cards stacked, white, rounded, shadow; amount on right)
+        <div style={{ marginTop: 18, width: "100%", maxWidth: maxCardWidth, marginLeft: "auto", marginRight: "auto", padding: "0 10px 40px 10px" }}>
           {loading ? (
-            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }} data-i18n="Loading...">
-              Loading...
-            </p>
+            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }}>Loading...</p>
           ) : allDeposits.length === 0 ? (
-            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }} data-i18n="No deposit records found.">
-              No deposit records found.
-            </p>
+            <p style={{ textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 }}>No deposit records found.</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {allDeposits
-                .slice()
-                .reverse()
-                .map((deposit, index) => {
-                  const amt = Number(deposit.amount || 0).toFixed(2);
-                  // show amount with currency exactly as stored in settings
-                  const displayAmount = currency ? `${amt} ${currency}` : amt;
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        background: "#fff",
-                        boxShadow: "0 4px 12px 0 rgba(0,0,0,.07)",
-                        borderRadius: 8,
-                        padding: "18px 22px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: "#222" }}>+{displayAmount}</div>
-                        <div style={{ fontSize: 14, color: "#888", marginTop: 2 }}>
-                          {deposit.createdAt ? new Date(deposit.createdAt).toLocaleString() : deposit.date || ""}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 16,
-                          color: "#2196d6",
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        <span>{deposit.status || "Completed"}</span>
-                      </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {allDeposits.slice().reverse().map((deposit, index) => {
+                const idRaw = deposit.orderId || deposit.txId || deposit.id || deposit._id || "";
+                const id = String(idRaw || "").toUpperCase(); // CODE IN CAPITAL LETTERS
+                const createdAt = deposit.createdAt ? formatDateISO(deposit.createdAt) : (deposit.date ? formatDateISO(deposit.date) : "");
+                const amountStr = fmtNum(Number(deposit.amount || 0));
+                const rightAmount = `+${amountStr}`;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: "16px 18px",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#222", marginBottom: 8, wordBreak: "break-all" }}>{id}</div>
+                      <div style={{ fontSize: 13, color: "#888" }}>{createdAt}</div>
                     </div>
-                  );
-                })}
+                    <div style={{ marginLeft: 12, fontWeight: 800, fontSize: 18, color: "#111" }}>{rightAmount}</div>
+                  </div>
+                );
+              })}
             </div>
           )}
-          {allDeposits.length > 0 && (
-            <p style={{ textAlign: "center", color: "#888", fontSize: 15, marginTop: 22 }} data-i18n="No more data...">
-              No more data...
-            </p>
-          )}
+
+          <div style={{ textAlign: "center", color: "#888", marginTop: 24 }}>No more data...</div>
         </div>
       )}
     </div>

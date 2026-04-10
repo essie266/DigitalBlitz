@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import logo from "../assets/images/header/logo.svg";
+import logo from "../assets/images/header/logos.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./Register.css";
 // customer service modal
@@ -98,8 +98,8 @@ function SpinnerOverlay({ duration = 500, onDone }) {
 // ---- Updated: Use your custom API domain ----
 const API_URL = "https://stacksapp-backend.onrender.com";
 
-// Highlight color to match Male/Female (kept consistent)
-const HIGHLIGHT_COLOR = "#1fb6fc";
+// Highlight color used for radio labels — set to black to match screenshot
+const HIGHLIGHT_COLOR = "#111";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -107,6 +107,7 @@ export default function Register() {
   const [formData, setFormData] = useState({
     username: "",
     phone: "",
+    email: "",
     loginPassword: "",
     withdrawalPassword: "",
     password: "",
@@ -147,6 +148,7 @@ export default function Register() {
         body: JSON.stringify({
           username: formData.username,
           phone: formData.phone,
+          email: formData.email,
           loginPassword: formData.password,
           withdrawalPassword: formData.withdrawalPassword,
           gender: formData.gender,
@@ -286,10 +288,36 @@ export default function Register() {
               )}
             </div>
           </div>
+
+          {/* Email (ADDED to match screenshot) */}
+          <div className="register-input-row">
+            <label className="register-label" data-i18n="Email">
+              Email
+            </label>
+            <div className="register-input-placeholder-wrap">
+              <input
+                name="email"
+                type="email"
+                className="register-input"
+                placeholder="Email"
+                data-i18n="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
+              {!formData.email && (
+                <span className="register-placeholder right-align" data-i18n="Email">
+                  Email
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Withdrawal Password */}
           <div className="register-input-row">
             <label className="register-label" data-i18n="Withdrawal Password">
-              Withdrawal Password
+              Transaction Password
             </label>
             <div className="register-input-placeholder-wrap">
               <input
@@ -305,7 +333,7 @@ export default function Register() {
               />
               {!formData.withdrawalPassword && (
                 <span className="register-placeholder right-align" data-i18n="Withdrawal Password">
-                  Withdrawal Password
+                  ••••••
                 </span>
               )}
             </div>
@@ -434,7 +462,7 @@ export default function Register() {
                 onClick={openTerms}
                 className="register-link-terms"
                 data-i18n="Terms and Conditions"
-                style={{ color: HIGHLIGHT_COLOR, fontWeight: 700, textDecoration: "none", marginLeft: 6 }}
+                style={{ color: "#111", fontWeight: 700, textDecoration: "underline", marginLeft: 6 }}
               >
                 Terms and Conditions
               </a>
