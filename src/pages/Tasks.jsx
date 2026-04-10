@@ -18,15 +18,15 @@ import recordsIcon from "../assets/images/tabBar/Record.png";
 import profileIcon from "../assets/images/tabBar/My3.png";
 
 // Import local diamond-shaped images
-import main from "../assets/images/starting/main.png";
-import sub1 from "../assets/images/starting/1.png";
-import sub2 from "../assets/images/starting/2.png";
-import sub3 from "../assets/images/starting/3.png";
-import sub4 from "../assets/images/starting/4.png";
-import sub5 from "../assets/images/starting/5.png";
-import sub6 from "../assets/images/starting/6.png";
-import sub7 from "../assets/images/starting/7.png";
-import sub8 from "../assets/images/starting/8.png";
+import main from "../assets/images/Starting/main.png";
+import sub1 from "../assets/images/Starting/1.png";
+import sub2 from "../assets/images/Starting/2.png";
+import sub3 from "../assets/images/Starting/3.png";
+import sub4 from "../assets/images/Starting/4.png";
+import sub5 from "../assets/images/Starting/5.png";
+import sub6 from "../assets/images/Starting/6.png";
+import sub7 from "../assets/images/Starting/7.png";
+import sub8 from "../assets/images/Starting/8.png";
 
 import BottomNav from "../components/BottomNav.jsx"; // added shared BottomNav import
 
