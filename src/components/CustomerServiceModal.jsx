@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 // Path to your avatar image in the public folder
 const csImage = "/assets/images/Cs.jpg";
 
-const API_BASE = "https://stacksapp-backend.onrender.com";
+const API_BASE = "https://digitalblitz-backend.onrender.com";
 const START_BLUE = "#1fb6fc";
 const DARK_BG = "#0f1112";
 const CARD_BG = "#ffffff";
