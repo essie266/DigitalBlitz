@@ -10,7 +10,7 @@ import bannerVideo from "../assets/videos/home_bg_videos.mp4";
 
 // Menu icons
 import wfpIcon from "../assets/images/home/wfp.png";
-import serviceIcon from "../assets/images/home/Service.png";
+import serviceIcon from "../assets/images/home/service.png";
 import certificateIcon from "../assets/images/home/Certificate.png";
 import eventIcon from "../assets/images/home/Event.png";
 import withdrawIcon from "../assets/images/home/Withdraw.png";
