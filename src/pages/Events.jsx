@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // Single event image (you said it's one)
-import eventImage from "../assets/images/events/event.png";
+import eventImage from "../assets/images/events/Event.png";
 
 const START_BLUE = "#1fb6fc";
 
