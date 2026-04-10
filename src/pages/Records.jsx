@@ -9,10 +9,10 @@ import "./Records.css";
 // settings (currency)
 import { useSettings } from "../context/SettingsContext";
 
-import homeIcon from "../assets/images/tabBar/homes.png";
+import homeIcon from "../assets/images/tabBar/Homes.png";
 import startingIcon from "../assets/images/tabBar/Start.png";
-import recordsIcon from "../assets/images/tabBar/record.png";
-import profileIcon from "../assets/images/tabBar/my3.png";
+import recordsIcon from "../assets/images/tabBar/Record.png";
+import profileIcon from "../assets/images/tabBar/My3.png";
 
 import BottomNav from "../components/BottomNav.jsx"; // added import
 
