@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 // Icons (paths match your repo layout used earlier)
-import homeIcon from "../assets/images/tabBar/homes.png";
-import startingIcon from "../assets/images/tabBar/start.png";
-import recordsIcon from "../assets/images/tabBar/record.png";
-import profileIcon from "../assets/images/tabBar/my3.png";
+import homeIcon from "../assets/images/tabBar/Homes.png";
+import startingIcon from "../assets/images/tabBar/Start.png";
+import recordsIcon from "../assets/images/tabBar/Record.png";
+import profileIcon from "../assets/images/tabBar/My3.png";
 
 /**
  * BottomNav
