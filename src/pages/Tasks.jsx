@@ -12,10 +12,10 @@ import vip1 from "../assets/images/vip/vip1.png";
 import vip2 from "../assets/images/vip/vip2.png";
 import vip3 from "../assets/images/vip/vip3.png";
 import vip4 from "../assets/images/vip/vip4.png";
-import homeIcon from "../assets/images/tabBar/homes.png";
+import homeIcon from "../assets/images/tabBar/Homes.png";
 import startingIcon from "../assets/images/tabBar/Start.png";
-import recordsIcon from "../assets/images/tabBar/record.png";
-import profileIcon from "../assets/images/tabBar/my3.png";
+import recordsIcon from "../assets/images/tabBar/Record.png";
+import profileIcon from "../assets/images/tabBar/My3.png";
 
 // Import local diamond-shaped images
 import main from "../assets/images/starting/main.png";
