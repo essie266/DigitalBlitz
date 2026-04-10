@@ -18,10 +18,10 @@ import depositIcon from "../assets/images/home/Deposit.png";
 import termsIcon from "../assets/images/home/T&C.png";
 
 // VIP images
-import vip1 from "../assets/images/vip/vips1.png";
-import vip2 from "../assets/images/vip/vips2.png";
-import vip3 from "../assets/images/vip/vips3.png";
-import vip4 from "../assets/images/vip/vips4.png";
+import vip1 from "../assets/images/vip/VIPs1.png";
+import vip2 from "../assets/images/vip/VIPs2.png";
+import vip3 from "../assets/images/vip/VIPs3.png";
+import vip4 from "../assets/images/vip/VIPs4.png";
 
 import CustomerServiceModal from "../components/CustomerServiceModal";
 import BottomNav from "../components/BottomNav.jsx"; // <-- added import for shared BottomNav
