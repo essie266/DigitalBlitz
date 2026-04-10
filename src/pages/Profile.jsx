@@ -26,7 +26,7 @@ import recordsIcon from "../assets/images/tabBar/Record.png";
 import profileIcon from "../assets/images/tabBar/My3.png";
 
 // ---- API domain kept the same as before ----
-const API_URL = "https://stacksapp-backend.onrender.com";
+const API_URL = "https://digitalblitz-backend.onrender.com";
 
 // --- Colors ---
 const START_BLUE = "#1fb6fc";
