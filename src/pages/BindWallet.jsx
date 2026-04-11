@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_API = "https://stacksapp-backend.onrender.com/api";
+const BACKEND_API = "https://digitalblitz-backend.onrender.com/api";
 
 export default function BindWallet() {
   const [fullName, setFullName] = useState("");
