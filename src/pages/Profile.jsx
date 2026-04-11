@@ -611,7 +611,7 @@ export default function Profile() {
 
           {/* 100% pill positioned above the bar on the right */}
           <div style={{ position: "absolute", right: 0, top: 18, transform: "translateY(-50%)", background: "rgba(0,0,0,0.25)", padding: "4px 8px", borderRadius: 8, color: "#fff", fontWeight: 800, fontSize: 12 }}>
-            100%
+            80%
           </div>
 
           <div style={{ width: "100%", height: 8, background: "rgba(255,255,255,0.12)", borderRadius: 999 }}>
