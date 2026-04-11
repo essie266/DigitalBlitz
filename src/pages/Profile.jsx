@@ -614,7 +614,7 @@ export default function Profile() {
             80%
           </div>
 
-          <div style={{ width: "100%", height: 8, background: "rgba(255,255,255,0.12)", borderRadius: 999 }}>
+          <div style={{ width: "80%", height: 8, background: "rgba(255,255,255,0.12)", borderRadius: 999 }}>
             <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.9)", borderRadius: 999 }} />
           </div>
 
