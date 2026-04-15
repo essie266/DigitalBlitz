@@ -4,10 +4,10 @@ import CustomerServiceModal from "../components/CustomerServiceModal";
 import { useProfile } from "../context/profileContext";
 
 // VIP badge images (same assets you already use elsewhere)
-import vip1 from "../assets/images/vip/vip11.png";
-import vip2 from "../assets/images/vip/vip22.png";
-import vip3 from "../assets/images/vip/vip33.png";
-import vip4 from "../assets/images/vip/vip44.png";
+import vip1 from "../assets/images/vip/vip11-removebg-preview.png";
+import vip2 from "../assets/images/vip/vip22-removebg-preview.png";
+import vip3 from "../assets/images/vip/vip333-removebg-preview.png";
+import vip4 from "../assets/images/vip/vip44-removebg-preview.png";
 
 /**
  * Premium (VIP Levels) page — updated to match the provided screenshot:
