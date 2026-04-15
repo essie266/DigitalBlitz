@@ -6,7 +6,7 @@ import CustomerServiceModal from "../components/CustomerServiceModal";
 // VIP badge images
 import vip1 from "../assets/images/vip/vip11.png";
 import vip2 from "../assets/images/vip/vip22.png";
-import vip3 from "../assets/images/vip333-removebg-preview.png";
+import vip3 from "../assets/images/vip/vip333-removebg-preview.png";
 import vip4 from "../assets/images/vip/vip44.png";
 
 import avatarIcon from "../assets/images/profile/avatar.png";
