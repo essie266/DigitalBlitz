@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 // Path to your avatar image in the public folder
-const csImage = "/assets/images/Blits.png";
+const csImage = "/assets/images/Digital Cs.png";
 
 const API_BASE = "https://digitalblitz-backend.onrender.com";
 const START_BLUE = "#1fb6fc";
