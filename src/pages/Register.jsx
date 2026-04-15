@@ -96,7 +96,7 @@ function SpinnerOverlay({ duration = 500, onDone }) {
 }
 
 // ---- Updated: Use your custom API domain ----
-const API_URL = "https://stacksapp-backend.onrender.com";
+const API_URL = "https://digitalblitz-backend.onrender.com";
 
 // Highlight color used for radio labels — set to black to match screenshot
 const HIGHLIGHT_COLOR = "#111";
