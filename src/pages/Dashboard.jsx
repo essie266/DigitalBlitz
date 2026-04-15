@@ -391,16 +391,25 @@ export default function Dashboard() {
   };
 
   const submitWithdrawPassword = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
 
+    setWithdrawError("");
+    setWithdrawLoading(true);
     try {
-      setWithdrawLoading(true);
+      // Prefer the auth token saved under "authToken" (Profile uses this).
+      // Fall back to user.token if present.
+      const token = localStorage.getItem("authToken") || (user && user.token);
+      if (!token) {
+        setWithdrawError("You are not signed in — please log in and try again.");
+        setWithdrawLoading(false);
+        return;
+      }
 
       const res = await fetch(`${API_URL}/api/verify-withdraw-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": user.token,
+          "X-Auth-Token": token,
         },
         body: JSON.stringify({ password: withdrawPassword }),
       });
@@ -411,9 +420,9 @@ export default function Dashboard() {
         setShowWithdrawModal(false);
         navigate("/withdraw");
       } else {
-        setWithdrawError(data.message);
+        setWithdrawError(data.message || "Verification failed.");
       }
-    } catch {
+    } catch (err) {
       setWithdrawError("Verification failed.");
     } finally {
       setWithdrawLoading(false);
