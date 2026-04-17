@@ -41,7 +41,15 @@ export default function BindWallet() {
     setLoading(true);
 
     try {
-      const token = user?.token;
+      // Prefer the global auth token key used elsewhere, fallback to token inside currentUser
+      const token = localStorage.getItem("authToken") || user?.token;
+      if (!token) {
+        setLoading(false);
+        alert("Authentication token missing. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
       const res = await fetch(`${BACKEND_API}/bind-wallet`, {
         method: "POST",
         headers: {
@@ -55,6 +63,15 @@ export default function BindWallet() {
           network,
         }),
       });
+
+      // Treat explicit auth failures
+      if (res.status === 401 || res.status === 403) {
+        setLoading(false);
+        alert("Not authorized. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
       const data = await res.json();
       setLoading(false);
       if (data.success) {
