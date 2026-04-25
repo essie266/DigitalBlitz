@@ -473,6 +473,17 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
+  // Poll for admin changes every 10 seconds while Profile is mounted so creditScore updates are seen quickly.
+  useEffect(() => {
+    let mounted = true;
+    const id = setInterval(async () => {
+      if (!mounted) return;
+      try { await fetchProfile(); } catch (e) {}
+    }, 10000);
+    return () => { mounted = false; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleProtectedRoute = (targetPath) => {
     setDestination(targetPath);
     setWithdrawPassword("");
@@ -527,8 +538,16 @@ export default function Profile() {
     balance: 0,
     commissionToday: 0,
     vipLevel: null,
-    inviteCode: ""
+    inviteCode: "",
+    creditScore: 100
   };
+
+  // compute credit score dynamic value (clamped 0-100)
+  const creditValueRaw = (typeof safeProfile.creditScore !== "undefined" && safeProfile.creditScore !== null)
+    ? Number(safeProfile.creditScore)
+    : 100;
+  const creditScore = Number.isFinite(creditValueRaw) ? Math.max(0, Math.min(100, Math.round(creditValueRaw))) : 100;
+  const creditPercentLabel = `${creditScore}%`;
 
   const vipInfo = getVipBadgeInfo(safeProfile.vipLevel);
   const fmt = (v) => { const n = Number(v || 0); return Number.isFinite(n) ? n.toFixed(2) : "0.00"; };
@@ -605,17 +624,18 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* credit score and 100% indicator above the bar (right-aligned) */}
+        {/* credit score and dynamic indicator above the bar (right-aligned) */}
         <div style={{ marginTop: 12, position: "relative" }}>
           <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginBottom: 8 }}>Credit Score:</div>
 
-          {/* 100% pill positioned above the bar on the right */}
+          {/* percent pill positioned above the bar on the right: dynamic */}
           <div style={{ position: "absolute", right: 0, top: 18, transform: "translateY(-50%)", background: "rgba(0,0,0,0.25)", padding: "4px 8px", borderRadius: 8, color: "#fff", fontWeight: 800, fontSize: 12 }}>
-            80%
+            {creditPercentLabel}
           </div>
 
+          {/* outer container uses 80% width as design; inner bar width is creditScore% of outer */}
           <div style={{ width: "80%", height: 8, background: "rgba(255,255,255,0.12)", borderRadius: 999 }}>
-            <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.9)", borderRadius: 999 }} />
+            <div style={{ width: `${creditScore}%`, height: "100%", background: "rgba(255,255,255,0.9)", borderRadius: 999, transition: "width 300ms ease" }} />
           </div>
 
         </div>
